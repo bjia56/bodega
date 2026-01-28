@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bodega"
+dynamic = ["version"]
+description = "Grocery lists for humans and coding agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "click==8.3.1",
+    "pyyaml==6.0.3",
+    "python-frontmatter==1.1.0",
+]
+
+[project.scripts]
+termnotes = "bodega.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "bodega.__version__"}
