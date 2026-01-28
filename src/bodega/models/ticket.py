@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Optional
 from enum import Enum
 import re
 import frontmatter
+
+from bodega.utils import now_utc
 
 
 class TicketType(str, Enum):
@@ -33,8 +35,8 @@ class Ticket:
     links: list[str] = field(default_factory=list)
     parent: Optional[str] = None
     external_ref: Optional[str] = None
-    created: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created: datetime = field(default_factory=now_utc)
+    updated: datetime = field(default_factory=now_utc)
 
     # Content sections (not in frontmatter)
     description: Optional[str] = None
@@ -201,6 +203,6 @@ class Ticket:
 
     def add_note(self, text: str) -> None:
         """Add a timestamped note."""
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
+        timestamp = now_utc().strftime("%Y-%m-%d %H:%M")
         self.notes.append(f"{timestamp}: {text}")
-        self.updated = datetime.now(UTC)
+        self.updated = now_utc()
