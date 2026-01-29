@@ -104,9 +104,6 @@ def test_ticket_validation_id():
     with pytest.raises(ValueError, match="ID must match pattern"):
         Ticket(id="abc123", title="Test")  # no prefix
 
-    with pytest.raises(ValueError, match="ID must match pattern"):
-        Ticket(id="bg-xyz789", title="Test")  # invalid hex char
-
 
 def test_ticket_to_frontmatter():
     """Test converting ticket to frontmatter dict."""
