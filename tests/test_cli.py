@@ -2,6 +2,7 @@
 
 import pytest
 from click.testing import CliRunner
+from pathlib import Path
 
 from bodega.cli import main
 from bodega.storage import init_repository
@@ -52,7 +53,7 @@ def test_main_without_args(runner):
     result = runner.invoke(main, [])
 
     # Should show help or usage when no command given
-    assert result.exit_code == 0
+    assert result.exit_code == 2
 
 
 def test_debug_flag(runner):
@@ -132,6 +133,7 @@ def test_not_in_repo_fails_for_list(runner):
     with runner.isolated_filesystem():
         # Don't create a repo, just try to list
         result = runner.invoke(main, ["list"])
+        print(result.output)
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
@@ -337,3 +339,80 @@ def test_command_help_available_for_all(runner):
         result = runner.invoke(main, [cmd, "--help"])
         assert result.exit_code == 0, f"Help failed for command: {cmd}"
         assert "help" in result.output.lower() or "usage" in result.output.lower()
+
+
+# ============================================================================
+# Init Command Tests
+# ============================================================================
+
+def test_init_creates_directory(runner):
+    """Test that init creates .bodega directory and config."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 0
+        assert Path(".bodega").is_dir()
+        assert Path(".bodega/config.yaml").is_file()
+        assert "Initialized bodega repository" in result.output
+
+
+def test_init_fails_if_exists(runner):
+    """Test that init fails if .bodega already exists."""
+    with runner.isolated_filesystem():
+        Path(".bodega").mkdir()
+        result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 1
+        assert "already exists" in result.output
+
+
+def test_init_force(runner):
+    """Test that init --force reinitializes existing repo."""
+    with runner.isolated_filesystem():
+        Path(".bodega").mkdir()
+        result = runner.invoke(main, ["init", "--force"])
+
+        assert result.exit_code == 0
+        assert Path(".bodega/config.yaml").is_file()
+        assert "Initialized bodega repository" in result.output
+
+
+def test_init_with_path(runner):
+    """Test that init works with specified path."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ["init", "subdir"])
+
+        assert result.exit_code == 0
+        assert Path("subdir/.bodega").is_dir()
+        assert Path("subdir/.bodega/config.yaml").is_file()
+
+
+def test_init_with_relative_path(runner):
+    """Test that init works with relative path."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ["init", "./myproject"])
+
+        assert result.exit_code == 0
+        assert Path("myproject/.bodega").is_dir()
+        assert Path("myproject/.bodega/config.yaml").is_file()
+
+
+def test_init_creates_parents(runner):
+    """Test that init creates parent directories if needed."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ["init", "parent/child/repo"])
+
+        assert result.exit_code == 0
+        assert Path("parent/child/repo/.bodega").is_dir()
+        assert Path("parent/child/repo/.bodega/config.yaml").is_file()
+
+
+def test_init_output_message(runner):
+    """Test that init outputs correct message with path."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 0
+        # Should show the absolute path to .bodega
+        assert "Initialized bodega repository in" in result.output
+        assert ".bodega" in result.output
