@@ -268,6 +268,153 @@ def test_edit_fails_without_repo(runner):
 # Note: Full edit command testing with actual editor is difficult in unit tests
 # as it requires interactive editor. These tests cover the basic error cases.
 
+def test_edit_updates_title(runner, temp_repo_with_ticket):
+    """Test that edit --title updates ticket title."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["edit", ticket_id, "--title", "Updated title"])
+    assert result.exit_code == 0
+    assert "Updated" in result.output
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["title"] == "Updated title"
+
+
+def test_edit_updates_type(runner, temp_repo_with_ticket):
+    """Test that edit --type updates ticket type."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["edit", ticket_id, "--type", "bug"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["type"] == "bug"
+
+
+def test_edit_updates_priority(runner, temp_repo_with_ticket):
+    """Test that edit --priority updates ticket priority."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["edit", ticket_id, "--priority", "1"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["priority"] == 1
+
+
+def test_edit_updates_assignee(runner, temp_repo_with_ticket):
+    """Test that edit --assignee updates ticket assignee."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["edit", ticket_id, "--assignee", "John Doe"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["assignee"] == "John Doe"
+
+
+def test_edit_adds_tags(runner, temp_repo_with_ticket):
+    """Test that edit --tag adds tags to ticket."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["edit", ticket_id, "--tag", "urgent", "--tag", "backend"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert "urgent" in data["tags"]
+    assert "backend" in data["tags"]
+
+
+def test_edit_removes_tags(runner, temp_repo_with_ticket):
+    """Test that edit --remove-tag removes tags from ticket."""
+    ticket_id = temp_repo_with_ticket
+
+    # First add some tags
+    runner.invoke(main, ["edit", ticket_id, "--tag", "urgent", "--tag", "backend"])
+
+    # Then remove one
+    result = runner.invoke(main, ["edit", ticket_id, "--remove-tag", "urgent"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert "urgent" not in data["tags"]
+    assert "backend" in data["tags"]
+
+
+def test_edit_updates_description(runner, temp_repo_with_ticket):
+    """Test that edit --description updates ticket description."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["edit", ticket_id, "--description", "New description text"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["description"] == "New description text"
+
+
+def test_edit_multiple_fields(runner, temp_repo_with_ticket):
+    """Test that edit can update multiple fields at once."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, [
+        "edit", ticket_id,
+        "--title", "Multi-update",
+        "--type", "feature",
+        "--priority", "0",
+        "--tag", "critical"
+    ])
+    assert result.exit_code == 0
+
+    # Verify all changes
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["title"] == "Multi-update"
+    assert data["type"] == "feature"
+    assert data["priority"] == 0
+    assert "critical" in data["tags"]
+
+
+def test_edit_with_partial_id(runner, temp_repo_with_ticket):
+    """Test that edit works with partial ID."""
+    ticket_id = temp_repo_with_ticket
+    partial_id = ticket_id[:5]
+
+    result = runner.invoke(main, ["edit", partial_id, "--title", "Partial ID test"])
+    assert result.exit_code == 0
+
+    # Verify the change
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["title"] == "Partial ID test"
+
+
+def test_edit_duplicate_tag_not_added(runner, temp_repo_with_ticket):
+    """Test that adding a duplicate tag doesn't create duplicates."""
+    ticket_id = temp_repo_with_ticket
+
+    # Add tag twice
+    runner.invoke(main, ["edit", ticket_id, "--tag", "urgent"])
+    runner.invoke(main, ["edit", ticket_id, "--tag", "urgent"])
+
+    # Verify only one occurrence
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    data = json.loads(result.output)
+    assert data["tags"].count("urgent") == 1
+
 
 # ============================================================================
 # Integration Tests

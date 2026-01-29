@@ -60,41 +60,128 @@ def show(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
 @click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
+@click.option("--title", default=None, help="Update ticket title")
+@click.option("--type", "-t", "ticket_type",
+              type=click.Choice(["bug", "feature", "task", "epic", "chore"]),
+              default=None, help="Update ticket type")
+@click.option("--priority", "-p", type=click.IntRange(0, 4),
+              default=None, help="Update priority (0=critical, 4=backlog)")
+@click.option("--assignee", "-a", default=None, help="Update assignee name")
+@click.option("--tag", multiple=True, help="Add tag (can be repeated)")
+@click.option("--remove-tag", multiple=True, help="Remove tag (can be repeated)")
+@click.option("--description", default=None, help="Update description text")
 @pass_context
-def edit(ctx: Context, ticket_id: str):
+def edit(
+    ctx: Context,
+    ticket_id: str,
+    title: str | None,
+    ticket_type: str | None,
+    priority: int | None,
+    assignee: str | None,
+    tag: tuple[str, ...],
+    remove_tag: tuple[str, ...],
+    description: str | None,
+):
     """
-    Open ticket in $EDITOR for editing
+    Edit ticket properties or open in $EDITOR
 
-    The ticket file is opened directly, allowing full control over
-    all fields and content.
+    If no options are provided, opens the ticket in $EDITOR for interactive editing.
+    If any options are provided, updates those fields directly without opening an editor.
 
     Examples:
 
-        bodega edit bg-a1b2c3
+        bodega edit bg-a1b2c3  # Opens in editor
 
-        EDITOR=code bodega edit bg-a1b2c3
+        bodega edit bg-a1b2c3 --title "New title"
+
+        bodega edit bg-a1b2c3 -t bug -p 1
+
+        bodega edit bg-a1b2c3 --tag urgent --tag api
+
+        bodega edit bg-a1b2c3 --remove-tag old-tag
+
+        bodega edit bg-a1b2c3 -a "John Doe" --description "Updated description"
     """
     storage = require_repo(ctx)
 
     try:
         ticket = storage.get(ticket_id)
-        path = storage._ticket_path(ticket.id)
 
-        # Open in editor
-        editor = ctx.config.effective_editor
-        result = subprocess.run([editor, str(path)])
+        # Check if any modification options were provided
+        has_modifications = any([
+            title is not None,
+            ticket_type is not None,
+            priority is not None,
+            assignee is not None,
+            len(tag) > 0,
+            len(remove_tag) > 0,
+            description is not None,
+        ])
 
-        if result.returncode != 0:
-            click.echo(f"Editor exited with code {result.returncode}", err=True)
-            raise SystemExit(1)
+        if has_modifications:
+            # Apply modifications directly
+            modified = False
 
-        # Validate the edited file
-        try:
-            # Re-read to validate
-            storage.get(ticket.id)
-            click.echo(f"Saved {ticket.id}")
-        except Exception as e:
-            click.echo(f"Warning: File may have invalid format: {e}", err=True)
+            if title is not None:
+                ticket.title = title
+                modified = True
+
+            if ticket_type is not None:
+                from bodega.models.ticket import TicketType
+                ticket.type = TicketType(ticket_type)
+                modified = True
+
+            if priority is not None:
+                ticket.priority = priority
+                modified = True
+
+            if assignee is not None:
+                ticket.assignee = assignee if assignee else None
+                modified = True
+
+            if len(tag) > 0:
+                for t in tag:
+                    if t not in ticket.tags:
+                        ticket.tags.append(t)
+                modified = True
+
+            if len(remove_tag) > 0:
+                for t in remove_tag:
+                    if t in ticket.tags:
+                        ticket.tags.remove(t)
+                modified = True
+
+            if description is not None:
+                ticket.description = description
+                modified = True
+
+            if modified:
+                from bodega.utils import now_utc
+                ticket.updated = now_utc()
+                storage.save(ticket)
+                click.echo(f"Updated {ticket.id}")
+            else:
+                click.echo(f"No changes made to {ticket.id}")
+
+        else:
+            # No options provided, open in editor
+            path = storage._ticket_path(ticket.id)
+
+            # Open in editor
+            editor = ctx.config.effective_editor
+            result = subprocess.run([editor, str(path)])
+
+            if result.returncode != 0:
+                click.echo(f"Editor exited with code {result.returncode}", err=True)
+                raise SystemExit(1)
+
+            # Validate the edited file
+            try:
+                # Re-read to validate
+                storage.get(ticket.id)
+                click.echo(f"Saved {ticket.id}")
+            except Exception as e:
+                click.echo(f"Warning: File may have invalid format: {e}", err=True)
 
     except TicketNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
