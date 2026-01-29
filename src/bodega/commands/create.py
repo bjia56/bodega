@@ -39,6 +39,7 @@ Enter description here...
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("title", required=False)
 @click.option("--type", "-t", "ticket_type",
               type=click.Choice(["bug", "feature", "task", "epic", "chore"]),
@@ -65,7 +66,7 @@ def create(
     description: str | None,
 ):
     """
-    Create a new ticket.
+    Create a new ticket
 
     If TITLE is not provided, opens $EDITOR for interactive creation.
 

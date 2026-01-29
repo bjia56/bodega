@@ -11,6 +11,7 @@ from bodega.utils import generate_id
 
 
 @click.command("migrate-beads")
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--path", "-p", type=click.Path(exists=True),
               help="Path to beads directory (default: .beads)")
 @click.option("--dry-run", is_flag=True,
@@ -25,7 +26,7 @@ def migrate_beads(
     preserve_ids: bool,
 ):
     """
-    Import tickets from a beads repository.
+    Import tickets from a beads repository
 
     Reads .beads/issues.jsonl and creates bodega tickets.
 

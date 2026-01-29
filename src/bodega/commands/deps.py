@@ -5,12 +5,13 @@ from bodega.storage import TicketNotFoundError
 from bodega.graph import DependencyGraph
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @click.argument("blocker_id", metavar="BLOCKER")
 @pass_context
 def dep(ctx: Context, ticket_id: str, blocker_id: str):
     """
-    Add a dependency (BLOCKER blocks ID).
+    Add a dependency (BLOCKER blocks ID)
 
     After this, ID cannot be completed until BLOCKER is closed.
 
@@ -56,12 +57,13 @@ def dep(ctx: Context, ticket_id: str, blocker_id: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @click.argument("blocker_id", metavar="BLOCKER")
 @pass_context
 def undep(ctx: Context, ticket_id: str, blocker_id: str):
     """
-    Remove a dependency.
+    Remove a dependency
 
     Examples:
 
@@ -90,12 +92,13 @@ def undep(ctx: Context, ticket_id: str, blocker_id: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
 def link(ctx: Context, id1: str, id2: str):
     """
-    Create a symmetric link between tickets.
+    Create a symmetric link between tickets
 
     Links are bidirectional - both tickets will reference each other.
 
@@ -137,12 +140,13 @@ def link(ctx: Context, id1: str, id2: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
 def unlink(ctx: Context, id1: str, id2: str):
     """
-    Remove a link between tickets.
+    Remove a link between tickets
 
     Examples:
 
@@ -180,11 +184,12 @@ def unlink(ctx: Context, id1: str, id2: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID", required=False)
 @pass_context
 def tree(ctx: Context, ticket_id: str | None):
     """
-    Display dependency tree.
+    Display dependency tree
 
     If ID is provided, shows tree for that ticket.
     Otherwise shows all dependency trees.
@@ -221,7 +226,7 @@ def tree(ctx: Context, ticket_id: str | None):
 @pass_context
 def cycle(ctx: Context):
     """
-    Detect circular dependencies.
+    Detect circular dependencies
 
     Reports any cycles found in the dependency graph.
 

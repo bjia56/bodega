@@ -8,11 +8,12 @@ from bodega.errors import TicketNotFoundError, AmbiguousIDError
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
 def start(ctx: Context, ticket_id: str):
     """
-    Set ticket status to in-progress.
+    Set ticket status to in-progress
 
     Examples:
 
@@ -45,11 +46,12 @@ def start(ctx: Context, ticket_id: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
 def close(ctx: Context, ticket_id: str):
     """
-    Set ticket status to closed.
+    Set ticket status to closed
 
     Examples:
 
@@ -82,11 +84,12 @@ def close(ctx: Context, ticket_id: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
 def reopen(ctx: Context, ticket_id: str):
     """
-    Set ticket status back to open.
+    Set ticket status back to open
 
     Examples:
 
@@ -117,11 +120,12 @@ def reopen(ctx: Context, ticket_id: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
 def status(ctx: Context, ticket_id: str):
     """
-    Get ticket status.
+    Get ticket status
 
     Examples:
 

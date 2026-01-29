@@ -8,12 +8,13 @@ from bodega.commands.utils import pass_context, Context
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--force", is_flag=True, help="Reinitialize existing repository")
 @click.argument("path", required=False, type=click.Path())
 @pass_context
 def init(ctx: Context, force: bool, path: str | None):
     """
-    Initialize a new bodega repository.
+    Initialize a new bodega repository
 
     Creates a .bodega/ directory with default configuration.
 

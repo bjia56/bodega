@@ -11,6 +11,7 @@ from bodega.graph import DependencyGraph
 
 
 @click.command(name="list")
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--all", "-a", "include_all", is_flag=True,
               help="Include closed tickets")
 @click.option("--status", "-s",
@@ -44,7 +45,7 @@ def list_tickets(
     fmt: str | None,
 ):
     """
-    List tickets with optional filters.
+    List tickets with optional filters
 
     By default, shows only open and in-progress tickets.
 
@@ -92,10 +93,11 @@ def list_tickets(
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @pass_context
 def ready(ctx: Context):
     """
-    List tickets that are ready to work on.
+    List tickets that are ready to work on
 
     Shows open tickets with no unresolved dependencies.
 
@@ -114,10 +116,11 @@ def ready(ctx: Context):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @pass_context
 def blocked(ctx: Context):
     """
-    List tickets that are blocked by dependencies.
+    List tickets that are blocked by dependencies
 
     Shows open tickets waiting on other tickets to close.
 
@@ -144,11 +147,12 @@ def blocked(ctx: Context):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--count", "-n", default=10, help="Number of tickets to show")
 @pass_context
 def closed(ctx: Context, count: int):
     """
-    List recently closed tickets.
+    List recently closed tickets
 
     Examples:
 
@@ -172,6 +176,7 @@ def closed(ctx: Context, count: int):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--all", "-a", "include_all", is_flag=True,
               help="Include closed tickets")
 @click.option("--status", "-s",
@@ -200,7 +205,7 @@ def query(
     pretty: bool | None,
 ):
     """
-    Output tickets as JSON for scripting.
+    Output tickets as JSON for scripting
 
     Examples:
 

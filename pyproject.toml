@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-termnotes = "bodega.cli:main"
+bodega = "bodega.cli:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "bodega.__version__"}

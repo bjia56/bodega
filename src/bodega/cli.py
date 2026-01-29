@@ -15,7 +15,7 @@ from bodega.commands.utils import Context, pass_context
 
 @click.group()
 @click.version_option(version=__version__, help="Show the Bodega version and exit")
-@click.help_option("--help", help="Show this message and exit")
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--debug", is_flag=True, help="Enable debug output")
 @pass_context
 def main(ctx: Context, debug: bool):

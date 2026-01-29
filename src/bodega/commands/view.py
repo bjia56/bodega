@@ -10,13 +10,14 @@ from bodega.output import format_ticket_detail, ticket_to_dict
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.option("--raw", is_flag=True, help="Output raw markdown file")
 @pass_context
 def show(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
     """
-    Display ticket details.
+    Display ticket details
 
     Examples:
 
@@ -57,11 +58,12 @@ def show(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
 def edit(ctx: Context, ticket_id: str):
     """
-    Open ticket in $EDITOR for editing.
+    Open ticket in $EDITOR for editing
 
     The ticket file is opened directly, allowing full control over
     all fields and content.
@@ -106,12 +108,13 @@ def edit(ctx: Context, ticket_id: str):
 
 
 @click.command()
+@click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @click.argument("text")
 @pass_context
 def note(ctx: Context, ticket_id: str, text: str):
     """
-    Add a timestamped note to a ticket.
+    Add a timestamped note to a ticket
 
     Notes are appended to the ## Notes section with a timestamp.
 
