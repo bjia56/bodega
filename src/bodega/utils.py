@@ -7,6 +7,8 @@ from typing import Optional
 from datetime import datetime, timezone, UTC
 from pathlib import Path
 
+from bodega.errors import TicketNotFoundError, AmbiguousIDError
+
 
 # ============================================================================
 # ID Generation and Validation
@@ -57,7 +59,8 @@ def resolve_id(partial: str, all_ids: list[str]) -> str:
         The matching full ID
 
     Raises:
-        ValueError: If no match or ambiguous match
+        TicketNotFoundError: If no match found
+        AmbiguousIDError: If multiple matches found
     """
     # Exact match
     if partial in all_ids:
@@ -69,9 +72,9 @@ def resolve_id(partial: str, all_ids: list[str]) -> str:
     if len(matches) == 1:
         return matches[0]
     elif len(matches) == 0:
-        raise ValueError(f"No ticket found matching '{partial}'")
+        raise TicketNotFoundError(f"No ticket found matching '{partial}'")
     else:
-        raise ValueError(
+        raise AmbiguousIDError(
             f"Ambiguous ID '{partial}' matches: {', '.join(matches)}"
         )
 

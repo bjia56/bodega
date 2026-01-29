@@ -14,6 +14,7 @@ from bodega.utils import (
     find_bodega_dir,
     DEFAULT_PREFIX,
 )
+from bodega.errors import TicketNotFoundError, AmbiguousIDError
 
 
 # ============================================================================
@@ -98,30 +99,30 @@ def test_resolve_id_partial():
 
 
 def test_resolve_id_ambiguous():
-    """Test that ambiguous partial IDs raise ValueError."""
+    """Test that ambiguous partial IDs raise AmbiguousIDError."""
     ids = ["bg-abc123", "bg-abc456"]
 
-    with pytest.raises(ValueError, match="Ambiguous"):
+    with pytest.raises(AmbiguousIDError, match="Ambiguous"):
         resolve_id("bg-abc", ids)
 
-    with pytest.raises(ValueError, match="Ambiguous"):
+    with pytest.raises(AmbiguousIDError, match="Ambiguous"):
         resolve_id("bg-a", ids)
 
 
 def test_resolve_id_not_found():
-    """Test that non-matching IDs raise ValueError."""
+    """Test that non-matching IDs raise TicketNotFoundError."""
     ids = ["bg-abc123", "bg-def456"]
 
-    with pytest.raises(ValueError, match="No ticket found"):
+    with pytest.raises(TicketNotFoundError, match="No ticket found"):
         resolve_id("bg-xyz", ids)
 
-    with pytest.raises(ValueError, match="No ticket found"):
+    with pytest.raises(TicketNotFoundError, match="No ticket found"):
         resolve_id("proj-abc", ids)
 
 
 def test_resolve_id_empty_list():
     """Test resolving ID with empty list."""
-    with pytest.raises(ValueError, match="No ticket found"):
+    with pytest.raises(TicketNotFoundError, match="No ticket found"):
         resolve_id("bg-abc123", [])
 
 
