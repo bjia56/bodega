@@ -25,3 +25,9 @@ termnotes = "bodega.cli:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "bodega.__version__"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

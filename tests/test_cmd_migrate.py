@@ -1,26 +1,9 @@
 """Tests for migrate-beads command."""
 
-import pytest
-from click.testing import CliRunner
 from pathlib import Path
 import json
 
 from bodega.cli import main
-from bodega.storage import init_repository
-
-
-@pytest.fixture
-def runner():
-    """Create a Click CLI test runner."""
-    return CliRunner()
-
-
-@pytest.fixture
-def temp_repo(runner):
-    """Create a temporary repository for testing."""
-    with runner.isolated_filesystem():
-        init_repository()
-        yield
 
 
 # ============================================================================

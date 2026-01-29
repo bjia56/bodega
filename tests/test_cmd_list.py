@@ -1,59 +1,8 @@
 """Tests for list commands (list, ready, blocked, closed, query)."""
 
-import pytest
-from click.testing import CliRunner
-from pathlib import Path
 import json
 
 from bodega.cli import main
-from bodega.storage import init_repository
-
-
-@pytest.fixture
-def runner():
-    """Create a Click CLI test runner."""
-    return CliRunner()
-
-
-@pytest.fixture
-def temp_repo(runner):
-    """Create a temporary repository for testing."""
-    with runner.isolated_filesystem():
-        init_repository()
-        yield
-
-
-@pytest.fixture
-def temp_repo_with_tickets(runner):
-    """Create a temporary repository with multiple test tickets."""
-    with runner.isolated_filesystem():
-        init_repository()
-
-        # Create tickets of different types and priorities
-        tickets = []
-
-        # Bug with high priority
-        result = runner.invoke(main, [
-            "create", "-t", "bug", "-p", "1", "--tag", "urgent",
-            "Critical bug"
-        ])
-        tickets.append(result.output.strip())
-
-        # Feature with normal priority
-        result = runner.invoke(main, [
-            "create", "-t", "feature", "-p", "2", "--tag", "api",
-            "New feature"
-        ])
-        tickets.append(result.output.strip())
-
-        # Task with low priority
-        result = runner.invoke(main, [
-            "create", "-t", "task", "-p", "3",
-            "Regular task"
-        ])
-        tickets.append(result.output.strip())
-
-        yield tickets
 
 
 # ============================================================================

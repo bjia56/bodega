@@ -3,22 +3,12 @@
 import pytest
 
 from bodega.graph import DependencyGraph
-from bodega.storage import TicketStorage, init_repository
 from bodega.models.ticket import Ticket, TicketStatus, TicketType
-from bodega.config import BodegaConfig
 
 
 # ============================================================================
 # Fixtures
 # ============================================================================
-
-@pytest.fixture
-def storage(tmp_path):
-    """Create a clean storage instance."""
-    bodega_dir = init_repository(tmp_path)
-    config = BodegaConfig(bodega_dir=bodega_dir)
-    return TicketStorage(config)
-
 
 @pytest.fixture
 def graph_with_simple_deps(storage):

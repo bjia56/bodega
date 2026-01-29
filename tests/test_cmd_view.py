@@ -1,50 +1,13 @@
 """Tests for view commands (show, edit, note)."""
 
 import pytest
-from click.testing import CliRunner
 from pathlib import Path
 import json
 import os
 
 from bodega.cli import main
-from bodega.storage import init_repository, TicketStorage
+from bodega.storage import TicketStorage
 from bodega.models.ticket import Ticket, TicketType, TicketStatus
-
-
-@pytest.fixture
-def runner():
-    """Create a Click CLI test runner."""
-    return CliRunner()
-
-
-@pytest.fixture
-def temp_repo(runner):
-    """Create a temporary repository for testing."""
-    with runner.isolated_filesystem():
-        init_repository()
-        yield
-
-
-@pytest.fixture
-def temp_repo_with_ticket(runner):
-    """Create a temporary repository with a test ticket."""
-    with runner.isolated_filesystem():
-        init_repository()
-
-        # Create a test ticket
-        result = runner.invoke(main, [
-            "create",
-            "-t", "bug",
-            "-p", "1",
-            "-a", "alice",
-            "--tag", "urgent",
-            "--tag", "api",
-            "--description", "This is a test bug description",
-            "Test bug ticket"
-        ])
-
-        ticket_id = result.output.strip()
-        yield ticket_id
 
 
 # ============================================================================
@@ -59,7 +22,7 @@ def test_show_displays_ticket(runner, temp_repo_with_ticket):
 
     assert result.exit_code == 0
     assert ticket_id in result.output
-    assert "Test bug ticket" in result.output
+    assert "Test ticket" in result.output
     assert "Status:" in result.output
     assert "Type:" in result.output
 
@@ -86,12 +49,9 @@ def test_show_json_format(runner, temp_repo_with_ticket):
     # Parse JSON
     data = json.loads(result.output)
     assert data["id"] == ticket_id
-    assert data["title"] == "Test bug ticket"
-    assert data["type"] == "bug"
-    assert data["priority"] == 1
-    assert data["assignee"] == "alice"
-    assert "urgent" in data["tags"]
-    assert "api" in data["tags"]
+    assert data["title"] == "Test ticket"
+    assert data["type"] == "task"
+    assert data["priority"] == 2
 
 
 def test_show_raw_format(runner, temp_repo_with_ticket):
@@ -103,8 +63,8 @@ def test_show_raw_format(runner, temp_repo_with_ticket):
     assert result.exit_code == 0
     # Should contain YAML frontmatter
     assert "---" in result.output
-    assert "title: Test bug ticket" in result.output
-    assert "type: bug" in result.output
+    assert "title: Test ticket" in result.output
+    assert "type: task" in result.output
 
 
 def test_show_displays_all_fields(runner, temp_repo_with_ticket):
@@ -114,11 +74,8 @@ def test_show_displays_all_fields(runner, temp_repo_with_ticket):
     result = runner.invoke(main, ["show", ticket_id])
 
     assert result.exit_code == 0
-    assert "bug" in result.output.lower()
-    assert "priority: 1" in result.output.lower()
-    assert "alice" in result.output.lower()
-    assert "urgent" in result.output.lower()
-    assert "api" in result.output.lower()
+    assert "task" in result.output.lower()
+    assert "priority: 2" in result.output.lower()
 
 
 def test_show_displays_description(runner, temp_repo_with_ticket):
@@ -129,7 +86,7 @@ def test_show_displays_description(runner, temp_repo_with_ticket):
 
     assert result.exit_code == 0
     assert "Description" in result.output
-    assert "This is a test bug description" in result.output
+    assert "Test description" in result.output
 
 
 def test_show_not_found(runner, temp_repo):

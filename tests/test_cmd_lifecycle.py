@@ -1,36 +1,6 @@
 """Tests for lifecycle commands (start, close, reopen, status)."""
 
-import pytest
-from click.testing import CliRunner
-
 from bodega.cli import main
-from bodega.storage import init_repository
-
-
-@pytest.fixture
-def runner():
-    """Create a Click CLI test runner."""
-    return CliRunner()
-
-
-@pytest.fixture
-def temp_repo(runner):
-    """Create a temporary repository for testing."""
-    with runner.isolated_filesystem():
-        init_repository()
-        yield
-
-
-@pytest.fixture
-def temp_repo_with_ticket(runner):
-    """Create a temporary repository with a test ticket."""
-    with runner.isolated_filesystem():
-        init_repository()
-
-        # Create a test ticket
-        result = runner.invoke(main, ["create", "Test ticket"])
-        ticket_id = result.output.strip()
-        yield ticket_id
 
 
 # ============================================================================

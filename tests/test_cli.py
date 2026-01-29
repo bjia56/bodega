@@ -1,30 +1,9 @@
 """Tests for CLI base structure."""
 
-import pytest
-from click.testing import CliRunner
 from pathlib import Path
 
 from bodega.cli import main
-from bodega.storage import init_repository
 from bodega import __version__
-
-
-# ============================================================================
-# Fixtures
-# ============================================================================
-
-@pytest.fixture
-def runner():
-    """Create a Click CLI test runner."""
-    return CliRunner()
-
-
-@pytest.fixture
-def temp_repo(runner):
-    """Create a temporary repository for testing."""
-    with runner.isolated_filesystem():
-        init_repository()
-        yield
 
 
 # ============================================================================
