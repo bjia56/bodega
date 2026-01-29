@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get Cosmopolitan Python
+        run: |
+          wget https://cosmo.zip/pub/cosmos/bin/python -O python.exe
+          chmod +x python.exe
+
+          PY_VERSION=$(./python.exe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          echo "py_version=$PY_VERSION" >> $GITHUB_ENV
+
+      - name: Bundle setuptools
+        run: |
+          cp ./python.exe ./python_with_setuptools.exe
+
+          mkdir setuptools_temp
+          ./python.exe -m pip install --target=setuptools_temp setuptools
+
+          folders=$(ls setuptools_temp)
+          for folder in $folders; do
+            ./python.exe scripts/add_to_zip.py ./setuptools_temp/"$folder" ./python_with_setuptools.exe Lib/site-packages/"$folder"
+          done
+
+          rm -rf setuptools_temp
+
+      - name: Install and bundle dependencies
+        run: |
+          ./python_with_setuptools.exe -m pip wheel --no-deps .
+
+          mkdir bodega_temp
+          ./python_with_setuptools.exe -m pip install --target=bodega_temp ./bodega-*.whl
+
+          folders=$(ls bodega_temp)
+          for folder in $folders; do
+            ./python_with_setuptools.exe scripts/add_to_zip.py ./bodega_temp/"$folder" ./python.exe Lib/site-packages/"$folder"
+          done
+
+          zip -urj python.exe scripts/.args
+
+      - name: Rename
+        run: mv python.exe bodega.exe
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bodega-executable
+          path: bodega.exe
