@@ -65,7 +65,12 @@ class TicketStorage:
         self.config = config or load_config()
         if not self.config.bodega_dir:
             raise StorageError("Not in a bodega repository. Run 'bodega init' first.")
-        self.tickets_dir = self.config.bodega_dir
+
+        # Use worktree path for ticket storage
+        from bodega.worktree import ensure_worktree
+        worktree_bodega_dir = ensure_worktree(self.config.bodega_dir, self.config.git_branch)
+        self.tickets_dir = worktree_bodega_dir
+        self.worktree_path = worktree_bodega_dir.parent  # .bodega/worktree/
 
     def _ticket_path(self, ticket_id: str) -> Path:
         """
@@ -131,6 +136,7 @@ class TicketStorage:
 
         Updates the 'updated' timestamp automatically.
         Uses file locking to prevent corruption.
+        Auto-commits to bodega branch if enabled.
 
         Args:
             ticket: The ticket to save
@@ -146,6 +152,16 @@ class TicketStorage:
         with self._file_lock(path):
             path.write_text(content)
 
+        # Auto-commit to bodega branch
+        if self.config.git_auto_commit:
+            from bodega.worktree import auto_commit_ticket
+            auto_commit_ticket(
+                self.worktree_path,
+                path,
+                operation="update",
+                ticket_id=ticket.id
+            )
+
         return path
 
     def create(self, ticket: Ticket) -> Ticket:
@@ -154,6 +170,7 @@ class TicketStorage:
 
         Generates ID if not set.
         Raises error if ID already exists.
+        Auto-commits to bodega branch if enabled.
 
         Args:
             ticket: The ticket to create
@@ -171,12 +188,31 @@ class TicketStorage:
         if path.exists():
             raise TicketExistsError(f"Ticket already exists: {ticket.id}")
 
-        self.save(ticket)
+        # Set timestamps
+        ticket.updated = now_utc()
+        content = ticket.to_markdown()
+
+        with self._file_lock(path):
+            path.write_text(content)
+
+        # Auto-commit with create-specific message
+        if self.config.git_auto_commit:
+            from bodega.worktree import auto_commit_ticket
+            auto_commit_ticket(
+                self.worktree_path,
+                path,
+                operation="create",
+                ticket_id=ticket.id,
+                message=ticket.title
+            )
+
         return ticket
 
     def delete(self, ticket_id: str) -> None:
         """
         Delete a ticket file.
+
+        Auto-commits deletion to bodega branch if enabled.
 
         Args:
             ticket_id: Full or partial ticket ID
@@ -188,6 +224,16 @@ class TicketStorage:
         full_id = resolve_id(ticket_id, self.list_ids())
         path = self._ticket_path(full_id)
         path.unlink()
+
+        # Auto-commit deletion
+        if self.config.git_auto_commit:
+            from bodega.worktree import auto_commit_ticket
+            auto_commit_ticket(
+                self.worktree_path,
+                path,
+                operation="delete",
+                ticket_id=full_id
+            )
 
     # ========================================================================
     # Listing and Querying

@@ -34,6 +34,17 @@ defaults:
 
 # Date format for display
 # date_format: "%Y-%m-%d %H:%M"
+
+# Git integration
+git:
+  # Branch name for ticket storage
+  branch: bodega
+
+  # Auto-commit ticket changes to bodega branch
+  auto_commit: true
+
+  # Conflict resolution strategy: theirs, ours, manual
+  sync_strategy: theirs
 """
 
 
@@ -59,6 +70,11 @@ class BodegaConfig:
     # Output settings
     list_format: str = "table"  # table, compact, ids
     date_format: str = "%Y-%m-%d %H:%M"
+
+    # Git worktree settings
+    git_branch: str = "bodega"
+    git_auto_commit: bool = True
+    git_sync_strategy: str = "theirs"  # theirs, ours, manual
 
     # Paths (computed, not from config file)
     bodega_dir: Optional[Path] = None
@@ -137,6 +153,15 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
         config.list_format = data["list_format"]
     if "date_format" in data:
         config.date_format = data["date_format"]
+
+    # Git worktree settings
+    git_config = data.get("git", {})
+    if "branch" in git_config:
+        config.git_branch = git_config["branch"]
+    if "auto_commit" in git_config:
+        config.git_auto_commit = git_config["auto_commit"]
+    if "sync_strategy" in git_config:
+        config.git_sync_strategy = git_config["sync_strategy"]
 
 
 def _apply_env_vars(config: BodegaConfig) -> None:

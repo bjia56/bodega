@@ -1,6 +1,7 @@
 """Shared pytest fixtures for bodega tests."""
 
 import pytest
+import subprocess
 from pathlib import Path
 from click.testing import CliRunner
 
@@ -26,6 +27,50 @@ def temp_repo(runner):
     with runner.isolated_filesystem():
         init_repository()
         yield
+
+
+@pytest.fixture
+def temp_git_repo(tmp_path):
+    """
+    Create a temporary git repository for testing worktree functionality.
+
+    Initializes git, sets user config, and creates initial commit.
+    Yields the path to the repository.
+    """
+    repo_path = tmp_path / "repo"
+    repo_path.mkdir()
+
+    # Initialize git
+    subprocess.run(
+        ["git", "init"],
+        cwd=repo_path,
+        check=True,
+        capture_output=True
+    )
+
+    # Set git user config
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        cwd=repo_path,
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=repo_path,
+        check=True,
+        capture_output=True
+    )
+
+    # Create initial commit
+    subprocess.run(
+        ["git", "commit", "--allow-empty", "-m", "Initial commit"],
+        cwd=repo_path,
+        check=True,
+        capture_output=True
+    )
+
+    yield repo_path
 
 
 # ============================================================================

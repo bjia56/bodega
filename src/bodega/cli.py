@@ -46,6 +46,7 @@ from bodega.commands import (
     list_cmd,
     deps,
     migrate,
+    sync,
 )
 
 # Register individual commands
@@ -80,6 +81,10 @@ main.add_command(deps.cycle)
 
 # Register migrate command
 main.add_command(migrate.migrate_beads)
+
+# Register sync commands
+main.add_command(sync.sync)
+main.add_command(sync.status)
 
 
 if __name__ == "__main__":
