@@ -1,2 +1,2 @@
 # bodega
-Grocery lists for humans and coding agents
+Git-native issue tracking for developers and AI agents
