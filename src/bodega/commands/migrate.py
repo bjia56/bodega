@@ -1,13 +1,184 @@
 """Migration commands - Import from other systems."""
 
 import click
-from bodega.commands.utils import pass_context, Context
+import json
+from pathlib import Path
+from datetime import datetime
+
+from bodega.commands.utils import pass_context, Context, require_repo
+from bodega.models import Ticket, TicketType, TicketStatus
+from bodega.utils import generate_id
 
 
-@click.command(name="migrate-beads")
-@click.argument("beads_dir", required=True)
-@click.option("--dry-run", is_flag=True, help="Show what would be migrated without doing it")
+@click.command("migrate-beads")
+@click.option("--path", "-p", type=click.Path(exists=True),
+              help="Path to beads directory (default: .beads)")
+@click.option("--dry-run", is_flag=True,
+              help="Show what would be imported without writing")
+@click.option("--preserve-ids", is_flag=True,
+              help="Keep original beads IDs instead of generating new ones")
 @pass_context
-def migrate_beads(ctx: Context, beads_dir: str, dry_run: bool):
-    """Migrate from beads format"""
-    click.echo("migrate-beads command - to be implemented")
+def migrate_beads(
+    ctx: Context,
+    path: str | None,
+    dry_run: bool,
+    preserve_ids: bool,
+):
+    """
+    Import tickets from a beads repository.
+
+    Reads .beads/issues.jsonl and creates bodega tickets.
+
+    Examples:
+
+        bodega migrate-beads
+
+        bodega migrate-beads --path /other/project/.beads
+
+        bodega migrate-beads --dry-run
+
+        bodega migrate-beads --preserve-ids
+    """
+    storage = require_repo(ctx)
+
+    # Find beads directory
+    beads_path = Path(path) if path else Path.cwd() / ".beads"
+    issues_file = beads_path / "issues.jsonl"
+
+    if not issues_file.exists():
+        click.echo(f"Error: Beads issues file not found: {issues_file}", err=True)
+        raise SystemExit(1)
+
+    # Read and parse beads issues
+    issues = []
+    with open(issues_file) as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                issue = json.loads(line)
+                issues.append(issue)
+            except json.JSONDecodeError as e:
+                click.echo(f"Warning: Invalid JSON on line {line_num}: {e}", err=True)
+
+    if not issues:
+        click.echo("No issues found to migrate.")
+        return
+
+    click.echo(f"Found {len(issues)} beads issues to migrate.")
+
+    # Build ID mapping (old -> new)
+    id_map = {}
+    for issue in issues:
+        old_id = issue.get("id", "")
+        if preserve_ids:
+            new_id = old_id
+        else:
+            new_id = generate_id(ctx.config.id_prefix)
+        id_map[old_id] = new_id
+
+    # Convert and save tickets
+    migrated = 0
+    for issue in issues:
+        try:
+            ticket = convert_beads_issue(issue, id_map, preserve_ids, ctx.config.id_prefix)
+
+            if dry_run:
+                click.echo(f"  Would create: {ticket.id} - {ticket.title}")
+            else:
+                storage.create(ticket)
+                click.echo(f"  Created: {ticket.id} - {ticket.title}")
+
+            migrated += 1
+
+        except Exception as e:
+            old_id = issue.get("id", "unknown")
+            click.echo(f"  Error migrating {old_id}: {e}", err=True)
+
+    if dry_run:
+        click.echo(f"\nDry run complete. Would migrate {migrated} tickets.")
+    else:
+        click.echo(f"\nMigration complete. Created {migrated} tickets.")
+
+
+def convert_beads_issue(
+    issue: dict,
+    id_map: dict[str, str],
+    preserve_ids: bool,
+    prefix: str,
+) -> Ticket:
+    """Convert a beads issue dict to a Ticket."""
+
+    old_id = issue.get("id", "")
+    new_id = id_map.get(old_id, generate_id(prefix))
+
+    # Map status
+    status_str = issue.get("status", "open")
+    status_map = {
+        "open": TicketStatus.OPEN,
+        "in-progress": TicketStatus.IN_PROGRESS,
+        "in_progress": TicketStatus.IN_PROGRESS,
+        "closed": TicketStatus.CLOSED,
+        "done": TicketStatus.CLOSED,
+    }
+    status = status_map.get(status_str, TicketStatus.OPEN)
+
+    # Map type
+    type_str = issue.get("issue_type", "task")
+    type_map = {
+        "bug": TicketType.BUG,
+        "feature": TicketType.FEATURE,
+        "task": TicketType.TASK,
+        "epic": TicketType.EPIC,
+        "chore": TicketType.CHORE,
+    }
+    ticket_type = type_map.get(type_str, TicketType.TASK)
+
+    # Parse dependencies
+    deps = []
+    links = []
+    parent = None
+
+    for dep in issue.get("dependencies", []):
+        dep_type = dep.get("type", "")
+        target = dep.get("target", "")
+        new_target = id_map.get(target, target)
+
+        if dep_type == "blocks":
+            deps.append(new_target)
+        elif dep_type == "related":
+            links.append(new_target)
+        elif dep_type == "parent-child":
+            parent = new_target
+
+    # Parse timestamps
+    created_str = issue.get("created_at")
+    created = datetime.fromisoformat(created_str.replace("Z", "+00:00")) if created_str else datetime.utcnow()
+
+    # Parse notes (could be string or list)
+    notes_raw = issue.get("notes", [])
+    if isinstance(notes_raw, str):
+        notes = [notes_raw] if notes_raw else []
+    else:
+        notes = notes_raw
+
+    return Ticket(
+        id=new_id,
+        title=issue.get("title", "Untitled"),
+        type=ticket_type,
+        status=status,
+        priority=issue.get("priority", 2),
+        assignee=issue.get("assignee"),
+        tags=issue.get("tags", []),
+        deps=deps,
+        links=links,
+        parent=parent,
+        external_ref=issue.get("external_ref"),
+        created=created,
+        updated=created,  # Use created as initial updated
+        description=issue.get("description"),
+        design=issue.get("design"),
+        acceptance_criteria=issue.get("acceptance_criteria"),
+        notes=notes,
+    )
