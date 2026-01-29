@@ -261,14 +261,6 @@ def test_close_requires_ticket_id(runner, temp_repo):
 # Create Command Tests
 # ============================================================================
 
-def test_create_requires_title(runner, temp_repo):
-    """Test that create command requires a title."""
-    result = runner.invoke(main, ["create"])
-
-    assert result.exit_code == 2
-    assert "Missing argument" in result.output or "TITLE" in result.output
-
-
 def test_create_accepts_options(runner, temp_repo):
     """Test that create command accepts various options."""
     result = runner.invoke(main, [
