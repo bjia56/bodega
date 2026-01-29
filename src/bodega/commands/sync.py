@@ -109,7 +109,7 @@ def sync(ctx: Context, dry_run: bool, no_merge_main: bool):
         raise SystemExit(1)
 
 
-@click.command()
+@click.command("sync-status")
 @click.help_option("-h", "--help", help="Show this message and exit")
 @pass_context
 def status(ctx: Context):

@@ -23,27 +23,30 @@ def runner():
 
 @pytest.fixture
 def temp_repo(runner):
-    """Create a temporary repository for testing."""
+    """Create a temporary repository for testing (without worktree)."""
     with runner.isolated_filesystem():
         init_repository()
         yield
 
 
 @pytest.fixture
-def temp_git_repo(tmp_path):
+def temp_git_repo(tmp_path, monkeypatch):
     """
     Create a temporary git repository for testing worktree functionality.
 
     Initializes git, sets user config, and creates initial commit.
+    Changes to the repository directory.
     Yields the path to the repository.
     """
     repo_path = tmp_path / "repo"
     repo_path.mkdir()
 
+    # Change to the repo directory for the test
+    monkeypatch.chdir(repo_path)
+
     # Initialize git
     subprocess.run(
-        ["git", "init"],
-        cwd=repo_path,
+        ["git", "init", "--initial-branch=main"],
         check=True,
         capture_output=True
     )
@@ -51,13 +54,11 @@ def temp_git_repo(tmp_path):
     # Set git user config
     subprocess.run(
         ["git", "config", "user.name", "Test User"],
-        cwd=repo_path,
         check=True,
         capture_output=True
     )
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
-        cwd=repo_path,
         check=True,
         capture_output=True
     )
@@ -65,7 +66,6 @@ def temp_git_repo(tmp_path):
     # Create initial commit
     subprocess.run(
         ["git", "commit", "--allow-empty", "-m", "Initial commit"],
-        cwd=repo_path,
         check=True,
         capture_output=True
     )
@@ -80,7 +80,7 @@ def temp_git_repo(tmp_path):
 @pytest.fixture
 def tmp_bodega(tmp_path):
     """
-    Create a temporary bodega repository.
+    Create a temporary bodega repository (without worktree).
 
     Yields the path to the .bodega directory.
     """

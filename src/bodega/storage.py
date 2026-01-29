@@ -66,11 +66,19 @@ class TicketStorage:
         if not self.config.bodega_dir:
             raise StorageError("Not in a bodega repository. Run 'bodega init' first.")
 
-        # Use worktree path for ticket storage
-        from bodega.worktree import ensure_worktree
-        worktree_bodega_dir = ensure_worktree(self.config.bodega_dir, self.config.git_branch)
-        self.tickets_dir = worktree_bodega_dir
-        self.worktree_path = worktree_bodega_dir.parent  # .bodega/worktree/
+        # Determine storage mode based on git_branch config
+        if self.config.git_branch:
+            # Worktree mode - use separate branch for ticket storage
+            from bodega.worktree import ensure_worktree
+            worktree_bodega_dir = ensure_worktree(self.config.bodega_dir, self.config.git_branch)
+            self.tickets_dir = worktree_bodega_dir
+            self.worktree_path = worktree_bodega_dir.parent  # .bodega/worktree/
+            self.use_worktree = True
+        else:
+            # Direct mode - store tickets in .bodega/ on current branch
+            self.tickets_dir = self.config.bodega_dir
+            self.worktree_path = None
+            self.use_worktree = False
 
     def _ticket_path(self, ticket_id: str) -> Path:
         """
@@ -152,8 +160,8 @@ class TicketStorage:
         with self._file_lock(path):
             path.write_text(content)
 
-        # Auto-commit to bodega branch
-        if self.config.git_auto_commit:
+        # Auto-commit to bodega branch (only in worktree mode)
+        if self.use_worktree and self.config.git_auto_commit:
             from bodega.worktree import auto_commit_ticket
             auto_commit_ticket(
                 self.worktree_path,
@@ -195,8 +203,8 @@ class TicketStorage:
         with self._file_lock(path):
             path.write_text(content)
 
-        # Auto-commit with create-specific message
-        if self.config.git_auto_commit:
+        # Auto-commit with create-specific message (only in worktree mode)
+        if self.use_worktree and self.config.git_auto_commit:
             from bodega.worktree import auto_commit_ticket
             auto_commit_ticket(
                 self.worktree_path,
@@ -225,8 +233,8 @@ class TicketStorage:
         path = self._ticket_path(full_id)
         path.unlink()
 
-        # Auto-commit deletion
-        if self.config.git_auto_commit:
+        # Auto-commit deletion (only in worktree mode)
+        if self.use_worktree and self.config.git_auto_commit:
             from bodega.worktree import auto_commit_ticket
             auto_commit_ticket(
                 self.worktree_path,

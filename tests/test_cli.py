@@ -385,5 +385,5 @@ def test_init_output_message(runner):
 
         assert result.exit_code == 0
         # Should show the absolute path to .bodega
-        assert "Initialized bodega repository in" in result.output
+        assert "Initialized bodega repository" in result.output
         assert ".bodega" in result.output

@@ -276,6 +276,18 @@ def test_has_uncommitted_changes_empty(temp_git_repo):
     init_repository(temp_git_repo)
     init_worktree(temp_git_repo, bodega_dir, "bodega")
 
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
+
     assert not has_uncommitted_changes(temp_git_repo, ".bodega")
 
 
@@ -284,6 +296,18 @@ def test_has_uncommitted_changes_with_changes(temp_git_repo):
     bodega_dir = temp_git_repo / ".bodega"
     init_repository(temp_git_repo)
     init_worktree(temp_git_repo, bodega_dir, "bodega")
+
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
 
     # Create a file in .bodega
     test_file = bodega_dir / "test.txt"
@@ -298,6 +322,18 @@ def test_get_commits_ahead(temp_git_repo):
     init_repository(temp_git_repo)
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
+
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
 
     # Initially, bodega should be ahead of main by at least 1 commit
     commits_ahead = get_commits_ahead(temp_git_repo, "bodega", "main")
@@ -320,6 +356,18 @@ def test_get_sync_status(temp_git_repo):
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
 
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
+
     status = get_sync_status(temp_git_repo, worktree_path, "main", "bodega")
 
     # Should have no uncommitted changes initially
@@ -341,6 +389,18 @@ def test_sync_branches_basic(temp_git_repo):
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
 
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
+
     # Create a ticket on bodega branch
     ticket_file = worktree_bodega_dir / "bg-test123.md"
     ticket_file.write_text("# Test ticket")
@@ -360,6 +420,18 @@ def test_sync_branches_with_uncommitted_main_fails(temp_git_repo):
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
 
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
+
     # Create uncommitted file in main's .bodega
     test_file = bodega_dir / "test.txt"
     test_file.write_text("uncommitted")
@@ -375,6 +447,18 @@ def test_sync_branches_auto_commits_worktree_changes(temp_git_repo):
     init_repository(temp_git_repo)
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
+
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
 
     # Create uncommitted file in worktree
     ticket_file = worktree_bodega_dir / "bg-test123.md"
@@ -393,6 +477,18 @@ def test_sync_branches_skip_merge_to_main(temp_git_repo):
     init_repository(temp_git_repo)
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
+
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
 
     # Create ticket on bodega
     ticket_file = worktree_bodega_dir / "bg-test123.md"
@@ -423,6 +519,18 @@ def test_cleanup_worktree(temp_git_repo):
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
 
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
+
     assert worktree_path.exists()
 
     # Cleanup
@@ -437,6 +545,18 @@ def test_cleanup_worktree_keeps_branch(temp_git_repo):
     init_repository(temp_git_repo)
     worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
     worktree_path = worktree_bodega_dir.parent
+
+    # Commit initial worktree setup
+    subprocess.run(
+        ["git", "add", ".bodega/"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "Initial bodega worktree setup"],
+        check=True,
+        capture_output=True
+    )
 
     # Cleanup
     cleanup_worktree(worktree_path, temp_git_repo)

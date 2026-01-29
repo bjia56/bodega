@@ -35,16 +35,17 @@ defaults:
 # Date format for display
 # date_format: "%Y-%m-%d %H:%M"
 
-# Git integration
-git:
-  # Branch name for ticket storage
-  branch: bodega
+# Git integration (optional)
+# git:
+  # Branch name for worktree-based ticket storage
+  # Leave empty or comment out to store tickets in current branch
+  # branch: bodega
 
-  # Auto-commit ticket changes to bodega branch
-  auto_commit: true
+  # Auto-commit ticket changes to bodega branch (worktree mode only)
+  # auto_commit: true
 
   # Conflict resolution strategy: theirs, ours, manual
-  sync_strategy: theirs
+  # sync_strategy: theirs
 """
 
 
@@ -72,7 +73,7 @@ class BodegaConfig:
     date_format: str = "%Y-%m-%d %H:%M"
 
     # Git worktree settings
-    git_branch: str = "bodega"
+    git_branch: str = ""  # Empty = store in current branch, non-empty = use worktree
     git_auto_commit: bool = True
     git_sync_strategy: str = "theirs"  # theirs, ours, manual
 
