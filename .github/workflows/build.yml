@@ -11,12 +11,12 @@ on:
   workflow_dispatch:
 
 env:
-  chimplink_version: v0.10.0
+  chimplink_version: v0.11.0
 
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout repository
@@ -102,7 +102,9 @@ jobs:
           wget https://cosmo.zip/pub/cosmos/bin/ape-aarch64.elf
           wget https://cosmo.zip/pub/cosmos/bin/ape-x86_64.elf
 
+          sha256=$(sha256sum bodega.exe | cut -d ' ' -f 1)
           ./chimplink bodega.exe bodega ${{ github.sha }} \
+            --sha256 $sha256 \
             ape-x86_64.elf \
             ape-aarch64.elf \
             --os Linux /tmp/blink/blink-linux-* \
