@@ -56,8 +56,8 @@ class Ticket:
 
         # Validate id pattern (allow empty for new tickets)
         if self.id:
-            if not re.match(r'^[a-z]+-[a-z0-9]+$', self.id):
-                raise ValueError(f"ID must match pattern '^[a-z]+-[a-z0-9]+$', got '{self.id}'")
+            if not re.match(r'^[a-z]+-[a-z0-9\.]+$', self.id):
+                raise ValueError(f"ID must match pattern '^[a-z]+-[a-z0-9\.]+$', got '{self.id}'")
 
         # Convert string enums to proper enum instances if needed
         if isinstance(self.type, str):

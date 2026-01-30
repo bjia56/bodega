@@ -92,6 +92,7 @@ def test_ticket_validation_id():
     # Valid patterns
     Ticket(id="bg-abc123", title="Test")
     Ticket(id="feature-def456", title="Test")
+    Ticket(id="bug-123.456", title="Test")
     Ticket(id="", title="Test")  # Empty is allowed for new tickets
 
     # Invalid patterns
