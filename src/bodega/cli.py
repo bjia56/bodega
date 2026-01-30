@@ -1,6 +1,11 @@
 """Bodega CLI - Main entry point and command structure."""
 
 import click
+import os
+
+# patch the program name
+import click.core
+click.core._detect_program_name = lambda *args, **kwargs: os.environ.get("CHIMP_REAL_ARGV0") or "bodega"
 
 from bodega import __version__
 from bodega.config import load_config, BodegaConfig
@@ -14,7 +19,7 @@ from bodega.commands.utils import Context, pass_context
 # ============================================================================
 
 @click.group()
-@click.version_option(version=__version__, prog_name="bodega", help="Show the Bodega version and exit")
+@click.version_option(version=__version__, help="Show the Bodega version and exit")
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--debug", is_flag=True, help="Enable debug output")
 @pass_context
