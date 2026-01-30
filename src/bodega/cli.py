@@ -3,9 +3,15 @@
 import click
 import os
 
+prog_name = os.environ.get("CHIMP_REAL_ARGV0")
+if prog_name:
+    os.path.basename(prog_name)
+else:
+    prog_name = "bodega"
+
 # patch the program name
 import click.core
-click.core._detect_program_name = lambda *args, **kwargs: os.environ.get("CHIMP_REAL_ARGV0") or "bodega"
+click.core._detect_program_name = lambda *args, **kwargs: prog_name
 
 from bodega import __version__
 from bodega.config import load_config, BodegaConfig
