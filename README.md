@@ -1,7 +1,7 @@
 # bodega
 
-Git-native issue tracking for developers and AI agents. Inspired by [`beads`](https://github.com/steveyegge/beads)
-and [`ticket`](https://github.com/wedow/ticket), but combines both the simplicity of a Markdown-based, file-first
+Git-native issue tracking for developers and AI agents. Inspired by [beads](https://github.com/steveyegge/beads)
+and [ticket](https://github.com/wedow/ticket), but combines both the simplicity of a Markdown-based, file-first
 ticket management architecture with the flexibility of git tracking in a dedicated branch.
 
 ## Installation
