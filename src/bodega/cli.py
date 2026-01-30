@@ -5,7 +5,7 @@ import os
 
 prog_name = os.environ.get("CHIMP_REAL_ARGV0")
 if prog_name:
-    os.path.basename(prog_name)
+    prog_name = os.path.basename(prog_name)
 else:
     prog_name = "bodega"
 
