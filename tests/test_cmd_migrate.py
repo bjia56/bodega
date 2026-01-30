@@ -30,7 +30,7 @@ def test_migrate_beads_basic(runner, temp_repo):
             "issue_type": "task",
             "status": "open",
             "dependencies": [
-                {"type": "blocks", "target": "bead-001"}
+                {"type": "blocks", "depends_on_id": "bead-001"}
             ],
         },
     ]
@@ -136,10 +136,10 @@ def test_migrate_beads_all_fields(runner, temp_repo):
         "issue_type": "feature",
         "status": "in-progress",
         "priority": 3,
-        "assignee": "john",
+        "owner": "john",
         "external_ref": "gh-456",
         "created_at": "2026-01-15T10:00:00Z",
-        "tags": ["urgent", "backend"],
+        "labels": ["urgent", "backend"],
         "description": "Detailed description",
         "design": "Design notes",
         "acceptance_criteria": "AC notes",
@@ -250,7 +250,7 @@ def test_migrate_beads_dependencies(runner, temp_repo):
             "id": "bead-002",
             "title": "Blocked",
             "dependencies": [
-                {"type": "blocks", "target": "bead-001"}
+                {"type": "blocks", "depends_on_id": "bead-001"}
             ],
         },
     ]
@@ -281,7 +281,7 @@ def test_migrate_beads_links(runner, temp_repo):
             "id": "bead-002",
             "title": "Issue 2",
             "dependencies": [
-                {"type": "related", "target": "bead-001"}
+                {"type": "related", "depends_on_id": "bead-001"}
             ],
         },
     ]
@@ -313,7 +313,7 @@ def test_migrate_beads_parent_child(runner, temp_repo):
             "id": "bead-child",
             "title": "Child",
             "dependencies": [
-                {"type": "parent-child", "target": "bead-parent"}
+                {"type": "parent-child", "depends_on_id": "bead-parent"}
             ],
         },
     ]

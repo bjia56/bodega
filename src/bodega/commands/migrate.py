@@ -3,7 +3,7 @@
 import click
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, UTC
 
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.models import Ticket, TicketType, TicketStatus
@@ -143,7 +143,7 @@ def convert_beads_issue(
 
     for dep in issue.get("dependencies", []):
         dep_type = dep.get("type", "")
-        target = dep.get("target", "")
+        target = dep.get("depends_on_id", "")
         new_target = id_map.get(target, target)
 
         if dep_type == "blocks":
@@ -155,7 +155,7 @@ def convert_beads_issue(
 
     # Parse timestamps
     created_str = issue.get("created_at")
-    created = datetime.fromisoformat(created_str.replace("Z", "+00:00")) if created_str else datetime.utcnow()
+    created = datetime.fromisoformat(created_str.replace("Z", "+00:00")) if created_str else datetime.now(UTC)
 
     # Parse notes (could be string or list)
     notes_raw = issue.get("notes", [])
@@ -170,8 +170,8 @@ def convert_beads_issue(
         type=ticket_type,
         status=status,
         priority=issue.get("priority", 2),
-        assignee=issue.get("assignee"),
-        tags=issue.get("tags", []),
+        assignee=issue.get("owner"),
+        tags=issue.get("labels", []),
         deps=deps,
         links=links,
         parent=parent,
