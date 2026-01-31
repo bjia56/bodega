@@ -65,9 +65,9 @@ main.add_command(init.init)
 main.add_command(order.order)
 
 # Register lifecycle commands
-main.add_command(lifecycle.start)
-main.add_command(lifecycle.close)
-main.add_command(lifecycle.reopen)
+main.add_command(lifecycle.prep)
+main.add_command(lifecycle.bag)
+main.add_command(lifecycle.remake)
 main.add_command(lifecycle.status)
 
 # Register view commands

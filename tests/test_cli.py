@@ -79,21 +79,20 @@ def test_show_command_registered(runner):
     assert "show" in result.output.lower()
 
 
-def test_start_command_registered(runner):
-    """Test that start command is registered."""
-    result = runner.invoke(main, ["start", "--help"])
+def test_prep_command_registered(runner):
+    """Test that prep command is registered."""
+    result = runner.invoke(main, ["prep", "--help"])
 
     assert result.exit_code == 0
-    assert "start" in result.output.lower()
+    assert "prep" in result.output.lower()
 
 
-def test_close_command_registered(runner):
-    """Test that close command is registered."""
-    result = runner.invoke(main, ["close", "--help"])
+def test_bag_command_registered(runner):
+    """Test that bag command is registered."""
+    result = runner.invoke(main, ["bag", "--help"])
 
     assert result.exit_code == 0
-    assert "close" in result.output.lower()
-
+    assert "bag" in result.output.lower()
 
 def test_tree_command_registered(runner):
     """Test that tree command is registered."""
@@ -220,17 +219,17 @@ def test_show_requires_ticket_id(runner, temp_repo):
     assert "Missing argument" in result.output or "ID" in result.output
 
 
-def test_start_requires_ticket_id(runner, temp_repo):
-    """Test that start command requires a ticket ID."""
-    result = runner.invoke(main, ["start"])
+def test_prep_requires_ticket_id(runner, temp_repo):
+    """Test that prep command requires a ticket ID."""
+    result = runner.invoke(main, ["prep"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output or "ID" in result.output
 
 
-def test_close_requires_ticket_id(runner, temp_repo):
-    """Test that close command requires a ticket ID."""
-    result = runner.invoke(main, ["close"])
+def test_bag_requires_ticket_id(runner, temp_repo):
+    """Test that bag command requires a ticket ID."""
+    result = runner.invoke(main, ["bag"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output or "ID" in result.output
@@ -300,7 +299,7 @@ def test_command_help_available_for_all(runner):
     """Test that --help works for all commands."""
     commands = [
         "init", "order", "list", "show", "edit", "note",
-        "start", "close", "reopen", "status",
+        "prep", "bag", "remake", "status",
         "ready", "blocked", "closed", "query",
         "dep", "undep", "link", "unlink", "tree", "cycle",
         "migrate-beads",

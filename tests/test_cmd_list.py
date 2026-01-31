@@ -34,7 +34,7 @@ def test_list_excludes_closed_by_default(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close one ticket
-    runner.invoke(main, ["close", tickets[0]])
+    runner.invoke(main, ["bag", tickets[0]])
 
     result = runner.invoke(main, ["list"])
 
@@ -50,7 +50,7 @@ def test_list_with_all_flag(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close one ticket
-    runner.invoke(main, ["close", tickets[0]])
+    runner.invoke(main, ["bag", tickets[0]])
 
     result = runner.invoke(main, ["list", "--all"])
 
@@ -65,7 +65,7 @@ def test_list_filter_by_status(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Start working on one ticket
-    runner.invoke(main, ["start", tickets[0]])
+    runner.invoke(main, ["prep", tickets[0]])
 
     result = runner.invoke(main, ["list", "-s", "in-progress"])
 
@@ -282,7 +282,7 @@ def test_ready_includes_tickets_with_closed_deps(runner, temp_repo):
     blocked_id = result.output.strip()
 
     # Close the blocker
-    runner.invoke(main, ["close", blocker_id])
+    runner.invoke(main, ["bag", blocker_id])
 
     result = runner.invoke(main, ["ready"])
 
@@ -363,7 +363,7 @@ def test_blocked_excludes_closed_blockers(runner, temp_repo):
     blocked_id = result.output.strip()
 
     # Close the blocker
-    runner.invoke(main, ["close", blocker_id])
+    runner.invoke(main, ["bag", blocker_id])
 
     result = runner.invoke(main, ["blocked"])
 
@@ -390,8 +390,8 @@ def test_closed_shows_closed_tickets(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close some tickets
-    runner.invoke(main, ["close", tickets[0]])
-    runner.invoke(main, ["close", tickets[1]])
+    runner.invoke(main, ["bag", tickets[0]])
+    runner.invoke(main, ["bag", tickets[1]])
 
     result = runner.invoke(main, ["closed"])
 
@@ -407,7 +407,7 @@ def test_closed_default_count(runner, temp_repo):
         result = runner.invoke(main, ["order", f"Ticket {i}"])
         ticket_id = result.output.strip()
         ticket_ids.append(ticket_id)
-        runner.invoke(main, ["close", ticket_id])
+        runner.invoke(main, ["bag", ticket_id])
 
     result = runner.invoke(main, ["closed"])
 
@@ -425,7 +425,7 @@ def test_closed_custom_count(runner, temp_repo_with_tickets):
 
     # Close all tickets
     for ticket_id in tickets:
-        runner.invoke(main, ["close", ticket_id])
+        runner.invoke(main, ["bag", ticket_id])
 
     result = runner.invoke(main, ["closed", "-n", "2"])
 
@@ -441,11 +441,11 @@ def test_closed_most_recent_first(runner, temp_repo):
     # Create and close tickets
     result = runner.invoke(main, ["order", "First closed"])
     first_id = result.output.strip()
-    runner.invoke(main, ["close", first_id])
+    runner.invoke(main, ["bag", first_id])
 
     result = runner.invoke(main, ["order", "Second closed"])
     second_id = result.output.strip()
-    runner.invoke(main, ["close", second_id])
+    runner.invoke(main, ["bag", second_id])
 
     result = runner.invoke(main, ["closed"])
 
@@ -526,7 +526,7 @@ def test_query_all_flag(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close one ticket
-    runner.invoke(main, ["close", tickets[0]])
+    runner.invoke(main, ["bag", tickets[0]])
 
     result = runner.invoke(main, ["query", "--all"])
 
@@ -604,7 +604,7 @@ def test_list_ready_blocked_integration(runner, temp_repo):
     assert "Blocked by:" in result.output
 
     # Close root
-    runner.invoke(main, ["close", root_id])
+    runner.invoke(main, ["bag", root_id])
 
     # Now ready should show dependent (since root is closed)
     result = runner.invoke(main, ["ready"])

@@ -437,7 +437,7 @@ def test_workflow_with_ticket_updates(runner, temp_git_repo):
     ticket_id = result.output.strip()
 
     # Update ticket (e.g., close it)
-    result = runner.invoke(main, ["close", ticket_id])
+    result = runner.invoke(main, ["bag", ticket_id])
     assert result.exit_code == 0
 
     # Sync
