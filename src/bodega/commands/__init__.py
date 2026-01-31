@@ -2,7 +2,7 @@
 
 from bodega.commands import (
     init,
-    create,
+    order,
     lifecycle,
     view,
     list_cmd,  # 'list' is a reserved word
@@ -12,7 +12,7 @@ from bodega.commands import (
 
 __all__ = [
     "init",
-    "create",
+    "order",
     "lifecycle",
     "view",
     "list_cmd",

@@ -423,7 +423,7 @@ def test_edit_duplicate_tag_not_added(runner, temp_repo_with_ticket):
 def test_show_note_integration(runner, temp_repo):
     """Test full flow: create, note, show."""
     # Create ticket
-    result = runner.invoke(main, ["create", "Integration test ticket"])
+    result = runner.invoke(main, ["order", "Integration test ticket"])
     ticket_id = result.output.strip()
 
     # Add note

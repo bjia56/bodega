@@ -53,7 +53,7 @@ def test_sync_command_basic(runner, temp_git_repo):
     )
 
     # Create a ticket
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
     print(result.output)
     assert result.exit_code == 0
 
@@ -84,7 +84,7 @@ def test_sync_command_dry_run(runner, temp_git_repo):
     )
 
     # Create a ticket
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
     assert result.exit_code == 0
 
     # Dry run
@@ -114,7 +114,7 @@ def test_sync_command_no_merge_main(runner, temp_git_repo):
     )
 
     # Create a ticket
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
     assert result.exit_code == 0
 
     # Sync without merging to main
@@ -175,7 +175,7 @@ def test_sync_command_updates_main_branch(runner, temp_git_repo):
     )
 
     # Create a ticket
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
     assert result.exit_code == 0
     ticket_id = result.output.strip()
 
@@ -269,9 +269,9 @@ def test_sync_status_command_shows_ticket_count(runner, temp_git_repo):
     )
 
     # Create tickets
-    runner.invoke(main, ["create", "Ticket 1"])
-    runner.invoke(main, ["create", "Ticket 2"])
-    runner.invoke(main, ["create", "Ticket 3"])
+    runner.invoke(main, ["order", "Ticket 1"])
+    runner.invoke(main, ["order", "Ticket 2"])
+    runner.invoke(main, ["order", "Ticket 3"])
 
     # Run sync-status
     result = runner.invoke(main, ["sync-status"])
@@ -329,7 +329,7 @@ def test_sync_status_command_in_sync(runner, temp_git_repo):
     )
 
     # Create and sync a ticket
-    runner.invoke(main, ["create", "Test ticket"])
+    runner.invoke(main, ["order", "Test ticket"])
     runner.invoke(main, ["sync"])
 
     # Run sync-status
@@ -358,7 +358,7 @@ def test_sync_status_command_out_of_sync(runner, temp_git_repo):
     )
 
     # Create ticket (will be on bodega branch, not synced to main yet)
-    runner.invoke(main, ["create", "Test ticket"])
+    runner.invoke(main, ["order", "Test ticket"])
 
     # Run sync-status without syncing
     result = runner.invoke(main, ["sync-status"])
@@ -392,7 +392,7 @@ def test_full_workflow_create_sync_commit(runner, temp_git_repo):
     # 2. Create multiple tickets
     ticket_ids = []
     for i in range(3):
-        result = runner.invoke(main, ["create", f"Ticket {i+1}"])
+        result = runner.invoke(main, ["order", f"Ticket {i+1}"])
         assert result.exit_code == 0
         ticket_ids.append(result.output.strip())
 
@@ -432,7 +432,7 @@ def test_workflow_with_ticket_updates(runner, temp_git_repo):
     )
 
     # Create ticket
-    result = runner.invoke(main, ["create", "Initial ticket"])
+    result = runner.invoke(main, ["order", "Initial ticket"])
     assert result.exit_code == 0
     ticket_id = result.output.strip()
 

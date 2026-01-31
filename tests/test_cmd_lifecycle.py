@@ -385,7 +385,7 @@ def test_lifecycle_full_workflow(runner, temp_repo_with_ticket):
 def test_lifecycle_with_list_integration(runner, temp_repo):
     """Test that lifecycle changes are reflected in list command."""
     # Create a ticket
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
     ticket_id = result.output.strip()
 
     # Should appear in list (open by default)
@@ -429,13 +429,13 @@ def test_lifecycle_updates_timestamp(runner, temp_repo_with_ticket):
 def test_multiple_tickets_different_statuses(runner, temp_repo):
     """Test managing multiple tickets with different statuses."""
     # Create three tickets
-    result = runner.invoke(main, ["create", "Ticket 1"])
+    result = runner.invoke(main, ["order", "Ticket 1"])
     ticket1 = result.output.strip()
 
-    result = runner.invoke(main, ["create", "Ticket 2"])
+    result = runner.invoke(main, ["order", "Ticket 2"])
     ticket2 = result.output.strip()
 
-    result = runner.invoke(main, ["create", "Ticket 3"])
+    result = runner.invoke(main, ["order", "Ticket 3"])
     ticket3 = result.output.strip()
 
     # Set different statuses
@@ -458,7 +458,7 @@ def test_lifecycle_preserves_other_fields(runner, temp_repo):
     """Test that status changes don't affect other ticket fields."""
     # Create ticket with metadata
     result = runner.invoke(main, [
-        "create",
+        "order",
         "-t", "bug",
         "-p", "1",
         "-a", "alice",

@@ -1,4 +1,4 @@
-"""Tests for create command."""
+"""Tests for order command."""
 
 import pytest
 from pathlib import Path
@@ -8,21 +8,21 @@ from bodega.cli import main
 
 
 # ============================================================================
-# Basic Create Tests
+# Basic Order Tests
 # ============================================================================
 
-def test_create_minimal(runner, temp_repo):
+def test_order_minimal(runner, temp_repo):
     """Test creating a ticket with just a title."""
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
 
     assert result.exit_code == 0
     ticket_id = result.output.strip()
     assert ticket_id.startswith("bg-")
 
 
-def test_create_with_type(runner, temp_repo):
+def test_order_with_type(runner, temp_repo):
     """Test creating a ticket with specific type."""
-    result = runner.invoke(main, ["create", "-t", "bug", "Bug ticket"])
+    result = runner.invoke(main, ["order", "-t", "bug", "Bug ticket"])
 
     assert result.exit_code == 0
     ticket_id = result.output.strip()
@@ -32,9 +32,9 @@ def test_create_with_type(runner, temp_repo):
     assert "bug" in result.output.lower()
 
 
-def test_create_with_priority(runner, temp_repo):
+def test_order_with_priority(runner, temp_repo):
     """Test creating a ticket with specific priority."""
-    result = runner.invoke(main, ["create", "-p", "1", "High priority ticket"])
+    result = runner.invoke(main, ["order", "-p", "1", "High priority ticket"])
 
     assert result.exit_code == 0
     ticket_id = result.output.strip()
@@ -44,9 +44,9 @@ def test_create_with_priority(runner, temp_repo):
     assert "priority: 1" in result.output.lower()
 
 
-def test_create_with_assignee(runner, temp_repo):
+def test_order_with_assignee(runner, temp_repo):
     """Test creating a ticket with specific assignee."""
-    result = runner.invoke(main, ["create", "-a", "alice", "Assigned ticket"])
+    result = runner.invoke(main, ["order", "-a", "alice", "Assigned ticket"])
 
     assert result.exit_code == 0
     ticket_id = result.output.strip()
@@ -56,9 +56,9 @@ def test_create_with_assignee(runner, temp_repo):
     assert "alice" in result.output.lower()
 
 
-def test_create_with_single_tag(runner, temp_repo):
+def test_order_with_single_tag(runner, temp_repo):
     """Test creating a ticket with a single tag."""
-    result = runner.invoke(main, ["create", "--tag", "urgent", "Tagged ticket"])
+    result = runner.invoke(main, ["order", "--tag", "urgent", "Tagged ticket"])
 
     assert result.exit_code == 0
     ticket_id = result.output.strip()
@@ -68,10 +68,10 @@ def test_create_with_single_tag(runner, temp_repo):
     assert "urgent" in result.output.lower()
 
 
-def test_create_with_multiple_tags(runner, temp_repo):
+def test_order_with_multiple_tags(runner, temp_repo):
     """Test creating a ticket with multiple tags."""
     result = runner.invoke(main, [
-        "create",
+        "order",
         "--tag", "urgent",
         "--tag", "api",
         "--tag", "security",
@@ -88,10 +88,10 @@ def test_create_with_multiple_tags(runner, temp_repo):
     assert "security" in result.output.lower()
 
 
-def test_create_with_description(runner, temp_repo):
+def test_order_with_description(runner, temp_repo):
     """Test creating a ticket with description."""
     result = runner.invoke(main, [
-        "create",
+        "order",
         "--description", "This is the description",
         "Test ticket"
     ])
@@ -104,15 +104,15 @@ def test_create_with_description(runner, temp_repo):
     assert "This is the description" in result.output
 
 
-def test_create_with_parent(runner, temp_repo):
+def test_order_with_parent(runner, temp_repo):
     """Test creating a ticket with parent."""
     # Create parent ticket first
-    result = runner.invoke(main, ["create", "Parent ticket"])
+    result = runner.invoke(main, ["order", "Parent ticket"])
     parent_id = result.output.strip()
 
     # Create child ticket
     result = runner.invoke(main, [
-        "create",
+        "order",
         "--parent", parent_id,
         "Child ticket"
     ])
@@ -125,10 +125,10 @@ def test_create_with_parent(runner, temp_repo):
     assert parent_id in result.output
 
 
-def test_create_with_external_ref(runner, temp_repo):
+def test_order_with_external_ref(runner, temp_repo):
     """Test creating a ticket with external reference."""
     result = runner.invoke(main, [
-        "create",
+        "order",
         "-e", "JIRA-123",
         "Linked ticket"
     ])
@@ -141,15 +141,15 @@ def test_create_with_external_ref(runner, temp_repo):
     assert "JIRA-123" in result.output
 
 
-def test_create_with_single_dep(runner, temp_repo):
+def test_order_with_single_dep(runner, temp_repo):
     """Test creating a ticket with a dependency."""
     # Create dependency ticket first
-    result = runner.invoke(main, ["create", "Dependency ticket"])
+    result = runner.invoke(main, ["order", "Dependency ticket"])
     dep_id = result.output.strip()
 
     # Create ticket with dependency
     result = runner.invoke(main, [
-        "create",
+        "order",
         "-d", dep_id,
         "Dependent ticket"
     ])
@@ -157,18 +157,18 @@ def test_create_with_single_dep(runner, temp_repo):
     assert result.exit_code == 0
 
 
-def test_create_with_multiple_deps(runner, temp_repo):
+def test_order_with_multiple_deps(runner, temp_repo):
     """Test creating a ticket with multiple dependencies."""
     # Create dependency tickets first
-    result = runner.invoke(main, ["create", "Dependency 1"])
+    result = runner.invoke(main, ["order", "Dependency 1"])
     dep1_id = result.output.strip()
 
-    result = runner.invoke(main, ["create", "Dependency 2"])
+    result = runner.invoke(main, ["order", "Dependency 2"])
     dep2_id = result.output.strip()
 
     # Create ticket with multiple dependencies
     result = runner.invoke(main, [
-        "create",
+        "order",
         "-d", dep1_id,
         "-d", dep2_id,
         "Dependent ticket"
@@ -183,19 +183,19 @@ def test_create_with_multiple_deps(runner, temp_repo):
     assert dep2_id in result.output
 
 
-def test_create_with_all_options(runner, temp_repo):
+def test_order_with_all_options(runner, temp_repo):
     """Test creating a ticket with all options."""
     # Create dependency
-    result = runner.invoke(main, ["create", "Dependency"])
+    result = runner.invoke(main, ["order", "Dependency"])
     dep_id = result.output.strip()
 
     # Create parent
-    result = runner.invoke(main, ["create", "Parent"])
+    result = runner.invoke(main, ["order", "Parent"])
     parent_id = result.output.strip()
 
     # Create ticket with all options
     result = runner.invoke(main, [
-        "create",
+        "order",
         "-t", "bug",
         "-p", "1",
         "-a", "alice",
@@ -217,10 +217,10 @@ def test_create_with_all_options(runner, temp_repo):
 # Validation Tests
 # ============================================================================
 
-def test_create_warns_about_nonexistent_dep(runner, temp_repo):
-    """Test that create warns about non-existent dependencies."""
+def test_order_warns_about_nonexistent_dep(runner, temp_repo):
+    """Test that order warns about non-existent dependencies."""
     result = runner.invoke(main, [
-        "create",
+        "order",
         "-d", "bg-nonexistent",
         "Test ticket"
     ])
@@ -231,30 +231,30 @@ def test_create_warns_about_nonexistent_dep(runner, temp_repo):
     assert "does not exist" in result.output
 
 
-def test_create_requires_title_or_no_args(runner, temp_repo):
-    """Test that create requires either a title or no args for interactive."""
+def test_order_requires_title_or_no_args(runner, temp_repo):
+    """Test that order requires either a title or no args for interactive."""
     # With title should work
-    result = runner.invoke(main, ["create", "Test"])
+    result = runner.invoke(main, ["order", "Test"])
     assert result.exit_code == 0
 
     # Without title should attempt interactive (will fail in test env)
-    result = runner.invoke(main, ["create"])
+    result = runner.invoke(main, ["order"])
     # Will fail because no editor available in test env
     assert result.exit_code != 0
 
 
-def test_create_invalid_priority(runner, temp_repo):
-    """Test that create rejects invalid priority."""
-    result = runner.invoke(main, ["create", "-p", "5", "Test"])
+def test_order_invalid_priority(runner, temp_repo):
+    """Test that order rejects invalid priority."""
+    result = runner.invoke(main, ["order", "-p", "5", "Test"])
 
     # Should fail with usage error
     assert result.exit_code == 2
     assert "Invalid value" in result.output or "out of range" in result.output
 
 
-def test_create_invalid_type(runner, temp_repo):
-    """Test that create rejects invalid type."""
-    result = runner.invoke(main, ["create", "-t", "invalid", "Test"])
+def test_order_invalid_type(runner, temp_repo):
+    """Test that order rejects invalid type."""
+    result = runner.invoke(main, ["order", "-t", "invalid", "Test"])
 
     # Should fail with usage error
     assert result.exit_code == 2
@@ -265,9 +265,9 @@ def test_create_invalid_type(runner, temp_repo):
 # Default Value Tests
 # ============================================================================
 
-def test_create_uses_config_defaults(runner, temp_repo):
-    """Test that create uses default values from config."""
-    result = runner.invoke(main, ["create", "Test ticket"])
+def test_order_uses_config_defaults(runner, temp_repo):
+    """Test that order uses default values from config."""
+    result = runner.invoke(main, ["order", "Test ticket"])
 
     assert result.exit_code == 0
     ticket_id = result.output.strip()
@@ -283,18 +283,18 @@ def test_create_uses_config_defaults(runner, temp_repo):
 # Error Handling Tests
 # ============================================================================
 
-def test_create_fails_without_repo(runner):
-    """Test that create fails when not in a repository."""
+def test_order_fails_without_repo(runner):
+    """Test that order fails when not in a repository."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["create", "Test"])
+        result = runner.invoke(main, ["order", "Test"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
 
 
-def test_create_with_empty_title_fails(runner, temp_repo):
-    """Test that create with empty string as title fails."""
-    result = runner.invoke(main, ["create", ""])
+def test_order_with_empty_title_fails(runner, temp_repo):
+    """Test that order with empty string as title fails."""
+    result = runner.invoke(main, ["order", ""])
 
     # Should fail because title is empty
     assert result.exit_code != 0
@@ -304,9 +304,9 @@ def test_create_with_empty_title_fails(runner, temp_repo):
 # Output Format Tests
 # ============================================================================
 
-def test_create_outputs_only_id(runner, temp_repo):
-    """Test that create outputs only the ticket ID."""
-    result = runner.invoke(main, ["create", "Test ticket"])
+def test_order_outputs_only_id(runner, temp_repo):
+    """Test that order outputs only the ticket ID."""
+    result = runner.invoke(main, ["order", "Test ticket"])
 
     assert result.exit_code == 0
     output = result.output.strip()
@@ -316,10 +316,10 @@ def test_create_outputs_only_id(runner, temp_repo):
     assert len(output.split("\n")) == 1  # Single line
 
 
-def test_create_id_can_be_used_immediately(runner, temp_repo):
+def test_order_id_can_be_used_immediately(runner, temp_repo):
     """Test that created ticket can be accessed immediately."""
     # Create ticket
-    result = runner.invoke(main, ["create", "Test ticket"])
+    result = runner.invoke(main, ["order", "Test ticket"])
     ticket_id = result.output.strip()
 
     # Show ticket immediately

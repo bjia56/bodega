@@ -51,7 +51,7 @@ def main(ctx: Context, debug: bool):
 # Import command modules
 from bodega.commands import (
     init,
-    create,
+    order,
     lifecycle,
     view,
     list_cmd,
@@ -62,7 +62,7 @@ from bodega.commands import (
 
 # Register individual commands
 main.add_command(init.init)
-main.add_command(create.create)
+main.add_command(order.order)
 
 # Register lifecycle commands
 main.add_command(lifecycle.start)

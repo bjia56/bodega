@@ -55,12 +55,12 @@ def test_init_command_registered(runner):
     assert "init" in result.output.lower()
 
 
-def test_create_command_registered(runner):
-    """Test that create command is registered."""
-    result = runner.invoke(main, ["create", "--help"])
+def test_order_command_registered(runner):
+    """Test that order command is registered."""
+    result = runner.invoke(main, ["order", "--help"])
 
     assert result.exit_code == 0
-    assert "create" in result.output.lower()
+    assert "order" in result.output.lower()
 
 
 def test_list_command_registered(runner):
@@ -237,13 +237,13 @@ def test_close_requires_ticket_id(runner, temp_repo):
 
 
 # ============================================================================
-# Create Command Tests
+# Order Command Tests
 # ============================================================================
 
-def test_create_accepts_options(runner, temp_repo):
-    """Test that create command accepts various options."""
+def test_order_accepts_options(runner, temp_repo):
+    """Test that order command accepts various options."""
     result = runner.invoke(main, [
-        "create",
+        "order",
         "Test ticket",
         "--type", "bug",
         "--priority", "1",
@@ -299,7 +299,7 @@ def test_tree_accepts_optional_id(runner, temp_repo):
 def test_command_help_available_for_all(runner):
     """Test that --help works for all commands."""
     commands = [
-        "init", "create", "list", "show", "edit", "note",
+        "init", "order", "list", "show", "edit", "note",
         "start", "close", "reopen", "status",
         "ready", "blocked", "closed", "query",
         "dep", "undep", "link", "unlink", "tree", "cycle",

@@ -1,4 +1,4 @@
-"""Create command - Create new tickets."""
+"""Order command - Place new orders at the counter."""
 
 import click
 import subprocess
@@ -53,7 +53,7 @@ Enter description here...
 @click.option("--dep", "-d", multiple=True, help="Blocking ticket ID (can be repeated)")
 @click.option("--description", default=None, help="Description text")
 @pass_context
-def create(
+def order(
     ctx: Context,
     title: str | None,
     ticket_type: str | None,
@@ -66,19 +66,19 @@ def create(
     description: str | None,
 ):
     """
-    Create a new ticket
+    Place a new order at the counter
 
     If TITLE is not provided, opens $EDITOR for interactive creation.
 
     Examples:
 
-        bodega create "Fix login bug"
+        bodega order "Fix login bug"
 
-        bodega create -t bug -p 1 "Fix login bug"
+        bodega order -t bug -p 1 "Fix login bug"
 
-        bodega create -t feature --tag api --tag v2 "Add profiles"
+        bodega order -t feature --tag api --tag v2 "Add profiles"
 
-        bodega create  # Opens editor
+        bodega order  # Opens editor
     """
     storage = require_repo(ctx)
     config = ctx.config
@@ -107,7 +107,7 @@ def create(
         # Interactive creation via editor
         ticket = create_interactive(ctx, final_type, final_priority, final_assignee)
         if ticket is None:
-            click.echo("Ticket creation cancelled.", err=True)
+            click.echo("Order cancelled.", err=True)
             raise SystemExit(1)
 
     # Validate dependencies exist
