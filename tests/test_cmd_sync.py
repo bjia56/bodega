@@ -36,7 +36,7 @@ def test_sync_command_requires_bodega_init(runner, temp_git_repo):
 def test_sync_command_basic(runner, temp_git_repo):
     """Test basic sync command execution."""
     # Initialize bodega with worktree
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     print(result.output)
     assert result.exit_code == 0
 
@@ -68,7 +68,7 @@ def test_sync_command_basic(runner, temp_git_repo):
 def test_sync_command_dry_run(runner, temp_git_repo):
     """Test sync --dry-run doesn't make changes."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -98,7 +98,7 @@ def test_sync_command_dry_run(runner, temp_git_repo):
 def test_sync_command_no_merge_main(runner, temp_git_repo):
     """Test sync --no-merge-main flag."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -129,7 +129,7 @@ def test_sync_command_no_merge_main(runner, temp_git_repo):
 def test_sync_command_with_uncommitted_changes(runner, temp_git_repo):
     """Test sync fails with uncommitted changes in .bodega."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -159,7 +159,7 @@ def test_sync_command_with_uncommitted_changes(runner, temp_git_repo):
 def test_sync_command_updates_main_branch(runner, temp_git_repo):
     """Test that sync creates files in main branch's .bodega."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -225,7 +225,7 @@ def test_sync_status_command_requires_bodega_init(runner, temp_git_repo):
 def test_sync_status_command_shows_sync_info(runner, temp_git_repo):
     """Test sync-status command shows sync information."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -253,7 +253,7 @@ def test_sync_status_command_shows_sync_info(runner, temp_git_repo):
 def test_sync_status_command_shows_ticket_count(runner, temp_git_repo):
     """Test sync-status shows number of tickets."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -283,7 +283,7 @@ def test_sync_status_command_shows_ticket_count(runner, temp_git_repo):
 def test_sync_status_command_shows_uncommitted_warning(runner, temp_git_repo):
     """Test sync-status shows warning for uncommitted changes."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -313,7 +313,7 @@ def test_sync_status_command_shows_uncommitted_warning(runner, temp_git_repo):
 def test_sync_status_command_in_sync(runner, temp_git_repo):
     """Test sync-status shows 'In sync' when synchronized."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -342,7 +342,7 @@ def test_sync_status_command_in_sync(runner, temp_git_repo):
 def test_sync_status_command_out_of_sync(runner, temp_git_repo):
     """Test sync-status shows 'Out of sync' when not synchronized."""
     # Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -374,7 +374,7 @@ def test_sync_status_command_out_of_sync(runner, temp_git_repo):
 def test_full_workflow_create_sync_commit(runner, temp_git_repo):
     """Test full workflow: init, create tickets, sync, commit."""
     # 1. Initialize bodega
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup
@@ -416,7 +416,7 @@ def test_full_workflow_create_sync_commit(runner, temp_git_repo):
 def test_workflow_with_ticket_updates(runner, temp_git_repo):
     """Test workflow with creating, updating, and syncing tickets."""
     # Initialize
-    result = runner.invoke(main, ["init", "--branch", "bodega"])
+    result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
 
     # Commit initial worktree setup

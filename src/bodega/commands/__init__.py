@@ -1,7 +1,7 @@
 """Bodega CLI commands."""
 
 from bodega.commands import (
-    init,
+    open_cmd,  # 'open' is a reserved word
     order,
     lifecycle,
     view,
@@ -11,7 +11,7 @@ from bodega.commands import (
 )
 
 __all__ = [
-    "init",
+    "open_cmd",
     "order",
     "lifecycle",
     "view",

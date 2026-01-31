@@ -39,7 +39,7 @@ def main(ctx: Context, debug: bool):
         if ctx.config.bodega_dir:
             ctx.storage = TicketStorage(ctx.config)
     except StorageError:
-        # Not in a bodega repo - only init command will work
+        # Not in a bodega repo - only open command will work
         ctx.config = BodegaConfig()
         ctx.storage = None
 
@@ -50,7 +50,7 @@ def main(ctx: Context, debug: bool):
 
 # Import command modules
 from bodega.commands import (
-    init,
+    open_cmd,
     order,
     lifecycle,
     view,
@@ -61,7 +61,7 @@ from bodega.commands import (
 )
 
 # Register individual commands
-main.add_command(init.init)
+main.add_command(open_cmd.open_cmd)
 main.add_command(order.order)
 
 # Register lifecycle commands

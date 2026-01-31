@@ -1,4 +1,4 @@
-"""Init command - Initialize a new bodega repository."""
+"""Open command - Open the bodega for business."""
 
 import click
 from pathlib import Path
@@ -9,30 +9,31 @@ from bodega.worktree import init_worktree
 from bodega.utils import find_repo_root
 
 
-@click.command()
+@click.command(name="open")
 @click.help_option("-h", "--help", help="Show this message and exit")
-@click.option("--force", is_flag=True, help="Reinitialize existing repository")
+@click.option("--force", is_flag=True, help="Overwrite existing configuration")
 @click.option("--branch", type=str, default=None, help="Git branch for worktree-based storage (e.g., 'bodega'). If not specified, tickets are stored in current branch.")
 @click.argument("path", required=False, type=click.Path())
 @pass_context
-def init(ctx: Context, force: bool, branch: str | None, path: str | None):
+def open_cmd(ctx: Context, force: bool, branch: str | None, path: str | None):
     """
-    Initialize a new bodega repository
+    Open the bodega for business
 
     Creates a .bodega/ directory with default configuration.
+    This is the first step before creating tickets.
 
-    By default, tickets are stored in .bodega/ on the current branch.
-    Use --branch to enable git worktree mode for separate ticket storage.
+    By default, tickets are stored in the current branch. Use --branch
+    to create a separate worktree for ticket storage.
 
     Examples:
 
-        bodega init                    # Store tickets in current branch
+        bodega open                    # Store tickets in current branch
 
-        bodega init --branch bodega    # Use worktree on 'bodega' branch
+        bodega open --branch bodega    # Use worktree on 'bodega' branch
 
-        bodega init ./myproj           # Initialize in specific directory
+        bodega open ./myproj           # Open in specific directory
 
-        bodega init --force            # Reinitialize existing repo
+        bodega open --force            # Overwrite existing config
     """
     target = Path(path) if path else Path.cwd()
 
@@ -93,7 +94,7 @@ def init(ctx: Context, force: bool, branch: str | None, path: str | None):
                     yaml.dump(config_data, f, default_flow_style=False)
 
         click.echo("\nNext steps:")
-        click.echo("  bodega create \"My first ticket\"")
+        click.echo("  bodega order \"My first ticket\"")
         click.echo("  bodega list")
 
     except StorageError as e:
