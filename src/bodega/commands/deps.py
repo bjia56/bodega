@@ -9,16 +9,21 @@ from bodega.graph import DependencyGraph
 @click.argument("ticket_id", metavar="ID")
 @click.argument("blocker_id", metavar="BLOCKER")
 @pass_context
-def dep(ctx: Context, ticket_id: str, blocker_id: str):
+def needs(ctx: Context, ticket_id: str, blocker_id: str):
     """
-    Add a dependency (BLOCKER blocks ID)
+    Order needs another item first
 
-    After this, ID cannot be completed until BLOCKER is closed.
+    Creates a blocking dependency. ID cannot be completed until
+    BLOCKER is closed.
+
+    After this, ID will show BLOCKER in its dependencies list.
 
     Examples:
 
-        bodega dep bg-a1b2c3 bg-d4e5f6
+        bodega needs bg-a1b2c3 bg-d4e5f6
         # bg-d4e5f6 now blocks bg-a1b2c3
+
+        bodega needs bg-a1b bg-d4e  # Partial IDs
     """
     storage = require_repo(ctx)
 
@@ -61,13 +66,18 @@ def dep(ctx: Context, ticket_id: str, blocker_id: str):
 @click.argument("ticket_id", metavar="ID")
 @click.argument("blocker_id", metavar="BLOCKER")
 @pass_context
-def undep(ctx: Context, ticket_id: str, blocker_id: str):
+def free(ctx: Context, ticket_id: str, blocker_id: str):
     """
-    Remove a dependency
+    Remove the dependency - order is free to proceed
+
+    Removes a blocking dependency between two tickets.
 
     Examples:
 
-        bodega undep bg-a1b2c3 bg-d4e5f6
+        bodega free bg-a1b2c3 bg-d4e5f6
+        # bg-d4e5f6 no longer blocks bg-a1b2c3
+
+        bodega free bg-a1b bg-d4e  # Partial IDs
     """
     storage = require_repo(ctx)
 
@@ -96,15 +106,21 @@ def undep(ctx: Context, ticket_id: str, blocker_id: str):
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
-def link(ctx: Context, id1: str, id2: str):
+def combo(ctx: Context, id1: str, id2: str):
     """
-    Create a symmetric link between tickets
+    Bundle orders together
 
-    Links are bidirectional - both tickets will reference each other.
+    Creates a bidirectional link between two related tickets.
+    Both tickets will reference each other in their related list.
+
+    Unlike dependencies, combos are non-blocking relationships.
 
     Examples:
 
-        bodega link bg-a1b2c3 bg-d4e5f6
+        bodega combo bg-a1b2c3 bg-d4e5f6
+        # Both tickets now show each other as related
+
+        bodega combo bg-a1b bg-d4e  # Partial IDs
     """
     storage = require_repo(ctx)
 
@@ -144,13 +160,18 @@ def link(ctx: Context, id1: str, id2: str):
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
-def unlink(ctx: Context, id1: str, id2: str):
+def split(ctx: Context, id1: str, id2: str):
     """
-    Remove a link between tickets
+    Split bundled orders
+
+    Removes the bidirectional link between two tickets.
 
     Examples:
 
-        bodega unlink bg-a1b2c3 bg-d4e5f6
+        bodega split bg-a1b2c3 bg-d4e5f6
+        # Tickets are no longer related
+
+        bodega split bg-a1b bg-d4e  # Partial IDs
     """
     storage = require_repo(ctx)
 

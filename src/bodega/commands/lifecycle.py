@@ -21,7 +21,7 @@ def prep(ctx: Context, ticket_id: str):
 
         bodega prep bg-a1b2c3
 
-        bodega prep a1b  # Partial ID
+        bodega prep bg-a1b  # Partial ID
     """
     storage = require_repo(ctx)
 
@@ -61,7 +61,7 @@ def bag(ctx: Context, ticket_id: str):
 
         bodega bag bg-a1b2c3
 
-        bodega bag a1b
+        bodega bag bg-a1b
     """
     storage = require_repo(ctx)
 

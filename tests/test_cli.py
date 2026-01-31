@@ -259,17 +259,17 @@ def test_order_accepts_options(runner, temp_repo):
 # Dependency Command Tests
 # ============================================================================
 
-def test_dep_requires_two_ids(runner, temp_repo):
-    """Test that dep command requires two ticket IDs."""
-    result = runner.invoke(main, ["dep"])
+def test_needs_requires_two_ids(runner, temp_repo):
+    """Test that needs command requires two ticket IDs."""
+    result = runner.invoke(main, ["needs"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output
 
 
-def test_dep_accepts_two_ids(runner, temp_repo):
-    """Test that dep command accepts two IDs."""
-    result = runner.invoke(main, ["dep", "bg-aaa", "bg-bbb"])
+def test_needs_accepts_two_ids(runner, temp_repo):
+    """Test that needs command accepts two IDs."""
+    result = runner.invoke(main, ["needs", "bg-aaa", "bg-bbb"])
 
     # Should not be a usage error
     assert result.exit_code != 2
@@ -301,7 +301,7 @@ def test_command_help_available_for_all(runner):
         "init", "order", "list", "peek", "adjust", "note",
         "prep", "bag", "remake", "status",
         "ready", "blocked", "served", "query",
-        "dep", "undep", "link", "unlink", "tree", "cycle",
+        "needs", "free", "combo", "split", "tree", "cycle",
         "migrate-beads",
     ]
 

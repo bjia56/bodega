@@ -26,7 +26,7 @@ def peek(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
 
         bodega peek bg-a1b2c3
 
-        bodega peek a1b  # Partial ID
+        bodega peek bg-a1b  # Partial ID
 
         bodega peek --json bg-a1b2c3
 

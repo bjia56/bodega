@@ -83,10 +83,10 @@ main.add_command(list_cmd.served)
 main.add_command(list_cmd.query)
 
 # Register dependency commands
-main.add_command(deps.dep)
-main.add_command(deps.undep)
-main.add_command(deps.link)
-main.add_command(deps.unlink)
+main.add_command(deps.needs)
+main.add_command(deps.free)
+main.add_command(deps.combo)
+main.add_command(deps.split)
 main.add_command(deps.tree)
 main.add_command(deps.cycle)
 
