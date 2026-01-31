@@ -150,15 +150,19 @@ def blocked(ctx: Context):
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--count", "-n", default=10, help="Number of tickets to show")
 @pass_context
-def closed(ctx: Context, count: int):
+def served(ctx: Context, count: int):
     """
-    List recently closed tickets
+    Show recently served orders
+
+    Displays the most recently closed tickets, sorted by closed date.
 
     Examples:
 
-        bodega closed         # Last 10 closed
+        bodega served         # Last 10 served
 
-        bodega closed -n 20   # Last 20 closed
+        bodega served -n 20   # Last 20 served
+
+        bodega served --count 5
     """
     storage = require_repo(ctx)
 

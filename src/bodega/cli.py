@@ -79,7 +79,7 @@ main.add_command(view.note)
 main.add_command(list_cmd.list_tickets)
 main.add_command(list_cmd.ready)
 main.add_command(list_cmd.blocked)
-main.add_command(list_cmd.closed)
+main.add_command(list_cmd.served)
 main.add_command(list_cmd.query)
 
 # Register dependency commands

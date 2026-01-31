@@ -300,7 +300,7 @@ def test_command_help_available_for_all(runner):
     commands = [
         "init", "order", "list", "peek", "adjust", "note",
         "prep", "bag", "remake", "status",
-        "ready", "blocked", "closed", "query",
+        "ready", "blocked", "served", "query",
         "dep", "undep", "link", "unlink", "tree", "cycle",
         "migrate-beads",
     ]

@@ -1,4 +1,4 @@
-"""Tests for list commands (list, ready, blocked, closed, query)."""
+"""Tests for list commands (list, ready, blocked, served, query)."""
 
 import json
 
@@ -382,25 +382,25 @@ def test_blocked_fails_without_repo(runner):
 
 
 # ============================================================================
-# Closed Command Tests
+# Served Command Tests
 # ============================================================================
 
-def test_closed_shows_closed_tickets(runner, temp_repo_with_tickets):
-    """Test that closed shows recently closed tickets."""
+def test_served_shows_closed_tickets(runner, temp_repo_with_tickets):
+    """Test that served shows recently served tickets."""
     tickets = temp_repo_with_tickets
 
     # Close some tickets
     runner.invoke(main, ["bag", tickets[0]])
     runner.invoke(main, ["bag", tickets[1]])
 
-    result = runner.invoke(main, ["closed"])
+    result = runner.invoke(main, ["served"])
 
     assert result.exit_code == 0
     assert tickets[0][:8] in result.output or tickets[1][:8] in result.output
 
 
-def test_closed_default_count(runner, temp_repo):
-    """Test that closed shows default 10 tickets."""
+def test_served_default_count(runner, temp_repo):
+    """Test that served shows default 10 tickets."""
     # Create and close 15 tickets
     ticket_ids = []
     for i in range(15):
@@ -409,7 +409,7 @@ def test_closed_default_count(runner, temp_repo):
         ticket_ids.append(ticket_id)
         runner.invoke(main, ["bag", ticket_id])
 
-    result = runner.invoke(main, ["closed"])
+    result = runner.invoke(main, ["served"])
 
     assert result.exit_code == 0
     # Should show up to 10 tickets
@@ -419,15 +419,15 @@ def test_closed_default_count(runner, temp_repo):
     assert len(lines) <= 10
 
 
-def test_closed_custom_count(runner, temp_repo_with_tickets):
-    """Test closed with custom count."""
+def test_served_custom_count(runner, temp_repo_with_tickets):
+    """Test served with custom count."""
     tickets = temp_repo_with_tickets
 
     # Close all tickets
     for ticket_id in tickets:
         runner.invoke(main, ["bag", ticket_id])
 
-    result = runner.invoke(main, ["closed", "-n", "2"])
+    result = runner.invoke(main, ["served", "-n", "2"])
 
     assert result.exit_code == 0
     # Should show exactly 2 tickets
@@ -436,8 +436,8 @@ def test_closed_custom_count(runner, temp_repo_with_tickets):
     assert len(lines) == 2
 
 
-def test_closed_most_recent_first(runner, temp_repo):
-    """Test that closed shows most recently closed first."""
+def test_served_most_recent_first(runner, temp_repo):
+    """Test that served shows most recently served orders first."""
     # Create and close tickets
     result = runner.invoke(main, ["order", "First closed"])
     first_id = result.output.strip()
@@ -447,7 +447,7 @@ def test_closed_most_recent_first(runner, temp_repo):
     second_id = result.output.strip()
     runner.invoke(main, ["bag", second_id])
 
-    result = runner.invoke(main, ["closed"])
+    result = runner.invoke(main, ["served"])
 
     assert result.exit_code == 0
     # Both should appear, with second (most recent) first
@@ -461,10 +461,10 @@ def test_closed_most_recent_first(runner, temp_repo):
     assert second_idx < first_idx
 
 
-def test_closed_fails_without_repo(runner):
-    """Test that closed fails when not in a repository."""
+def test_served_fails_without_repo(runner):
+    """Test that served fails when not in a repository."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["closed"])
+        result = runner.invoke(main, ["served"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
