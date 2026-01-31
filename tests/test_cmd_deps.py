@@ -140,11 +140,11 @@ def test_link(runner, temp_repo):
     assert "Linked" in result.output
 
     # Verify both have links
-    result = runner.invoke(main, ["show", "--json", id_a])
+    result = runner.invoke(main, ["peek", "--json", id_a])
     data = json.loads(result.output)
     assert id_b in data["links"]
 
-    result = runner.invoke(main, ["show", "--json", id_b])
+    result = runner.invoke(main, ["peek", "--json", id_b])
     data = json.loads(result.output)
     assert id_a in data["links"]
 
@@ -192,7 +192,7 @@ def test_unlink(runner, temp_repo):
     assert "Unlinked" in result.output
 
     # Verify both links are removed
-    result = runner.invoke(main, ["show", "--json", id_a])
+    result = runner.invoke(main, ["peek", "--json", id_a])
     data = json.loads(result.output)
     assert id_b not in data["links"]
 

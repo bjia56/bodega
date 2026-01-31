@@ -28,7 +28,7 @@ def test_order_with_type(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify ticket was created with correct type
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "bug" in result.output.lower()
 
 
@@ -40,7 +40,7 @@ def test_order_with_priority(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify ticket was created
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "priority: 1" in result.output.lower()
 
 
@@ -52,7 +52,7 @@ def test_order_with_assignee(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify ticket was created
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "alice" in result.output.lower()
 
 
@@ -64,7 +64,7 @@ def test_order_with_single_tag(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify ticket was created
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "urgent" in result.output.lower()
 
 
@@ -82,7 +82,7 @@ def test_order_with_multiple_tags(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify ticket was created with all tags
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "urgent" in result.output.lower()
     assert "api" in result.output.lower()
     assert "security" in result.output.lower()
@@ -100,7 +100,7 @@ def test_order_with_description(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify ticket has description
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "This is the description" in result.output
 
 
@@ -121,7 +121,7 @@ def test_order_with_parent(runner, temp_repo):
     child_id = result.output.strip()
 
     # Verify parent was set
-    result = runner.invoke(main, ["show", child_id])
+    result = runner.invoke(main, ["peek", child_id])
     assert parent_id in result.output
 
 
@@ -137,7 +137,7 @@ def test_order_with_external_ref(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify external ref was set
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert "JIRA-123" in result.output
 
 
@@ -178,7 +178,7 @@ def test_order_with_multiple_deps(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify dependencies were set
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     assert dep1_id in result.output
     assert dep2_id in result.output
 
@@ -273,7 +273,7 @@ def test_order_uses_config_defaults(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Verify default values were applied
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
     # Should have default type (task) and priority (2)
     assert "task" in result.output.lower()
     assert "priority: 2" in result.output.lower()
@@ -323,7 +323,7 @@ def test_order_id_can_be_used_immediately(runner, temp_repo):
     ticket_id = result.output.strip()
 
     # Show ticket immediately
-    result = runner.invoke(main, ["show", ticket_id])
+    result = runner.invoke(main, ["peek", ticket_id])
 
     assert result.exit_code == 0
     assert "Test ticket" in result.output

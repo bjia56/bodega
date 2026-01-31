@@ -82,7 +82,7 @@ def test_migrate_beads_preserve_ids(runner, temp_repo):
     assert result.exit_code == 0
 
     # Check ticket has original ID
-    result = runner.invoke(main, ["show", "bead-abc123"])
+    result = runner.invoke(main, ["peek", "bead-abc123"])
     assert result.exit_code == 0
     assert "Test" in result.output
 
@@ -153,7 +153,7 @@ def test_migrate_beads_all_fields(runner, temp_repo):
     assert result.exit_code == 0
 
     # Verify all fields
-    result = runner.invoke(main, ["show", "--json", "bead-full"])
+    result = runner.invoke(main, ["peek", "--json", "bead-full"])
     assert result.exit_code == 0
     data = json.loads(result.output)
 
@@ -197,7 +197,7 @@ def test_migrate_beads_status_mapping(runner, temp_repo):
     # Verify status mappings
     for beads_status, expected_status in test_cases:
         issue_id = f"bead-{beads_status}"
-        result = runner.invoke(main, ["show", "--json", issue_id])
+        result = runner.invoke(main, ["peek", "--json", issue_id])
         if result.exit_code == 0:
             data = json.loads(result.output)
             assert data["status"] == expected_status
@@ -226,7 +226,7 @@ def test_migrate_beads_type_mapping(runner, temp_repo):
     # Verify type mappings
     for issue_type in issue_types:
         issue_id = f"bead-{issue_type}"
-        result = runner.invoke(main, ["show", "--json", issue_id])
+        result = runner.invoke(main, ["peek", "--json", issue_id])
         if result.exit_code == 0:
             data = json.loads(result.output)
             assert data["type"] == issue_type
@@ -294,7 +294,7 @@ def test_migrate_beads_links(runner, temp_repo):
     assert result.exit_code == 0
 
     # Verify link was created
-    result = runner.invoke(main, ["show", "--json", "bead-002"])
+    result = runner.invoke(main, ["peek", "--json", "bead-002"])
     data = json.loads(result.output)
     assert "bead-001" in data["links"]
 
@@ -326,7 +326,7 @@ def test_migrate_beads_parent_child(runner, temp_repo):
     assert result.exit_code == 0
 
     # Verify parent was set
-    result = runner.invoke(main, ["show", "--json", "bead-child"])
+    result = runner.invoke(main, ["peek", "--json", "bead-child"])
     data = json.loads(result.output)
     assert data["parent"] == "bead-parent"
 
@@ -370,7 +370,7 @@ def test_migrate_beads_notes_string(runner, temp_repo):
     assert result.exit_code == 0
 
     # Verify notes were converted to list
-    result = runner.invoke(main, ["show", "--json", "bead-notes"])
+    result = runner.invoke(main, ["peek", "--json", "bead-notes"])
     data = json.loads(result.output)
     assert isinstance(data["notes"], list)
     assert "Single note string" in data["notes"]
@@ -393,7 +393,7 @@ def test_migrate_beads_minimal_fields(runner, temp_repo):
     assert result.exit_code == 0
 
     # Verify defaults were applied
-    result = runner.invoke(main, ["show", "--json", "bead-minimal"])
+    result = runner.invoke(main, ["peek", "--json", "bead-minimal"])
     data = json.loads(result.output)
     assert data["title"] == "Minimal"
     assert data["status"] == "open"

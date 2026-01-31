@@ -409,7 +409,7 @@ def test_lifecycle_updates_timestamp(runner, temp_repo_with_ticket):
     ticket_id = temp_repo_with_ticket
 
     # Get initial state
-    result = runner.invoke(main, ["show", "--json", ticket_id])
+    result = runner.invoke(main, ["peek", "--json", ticket_id])
     import json
     initial_data = json.loads(result.output)
     initial_updated = initial_data["updated"]
@@ -418,7 +418,7 @@ def test_lifecycle_updates_timestamp(runner, temp_repo_with_ticket):
     runner.invoke(main, ["prep", ticket_id])
 
     # Get updated state
-    result = runner.invoke(main, ["show", "--json", ticket_id])
+    result = runner.invoke(main, ["peek", "--json", ticket_id])
     updated_data = json.loads(result.output)
     new_updated = updated_data["updated"]
 
@@ -471,7 +471,7 @@ def test_lifecycle_preserves_other_fields(runner, temp_repo):
     runner.invoke(main, ["prep", ticket_id])
 
     # Verify metadata is preserved
-    result = runner.invoke(main, ["show", "--json", ticket_id])
+    result = runner.invoke(main, ["peek", "--json", ticket_id])
     import json
     data = json.loads(result.output)
 

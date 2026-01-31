@@ -71,8 +71,8 @@ main.add_command(lifecycle.remake)
 main.add_command(lifecycle.status)
 
 # Register view commands
-main.add_command(view.show)
-main.add_command(view.edit)
+main.add_command(view.peek)
+main.add_command(view.adjust)
 main.add_command(view.note)
 
 # Register list commands

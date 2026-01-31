@@ -73,10 +73,10 @@ def test_list_command_registered(runner):
 
 def test_show_command_registered(runner):
     """Test that show command is registered."""
-    result = runner.invoke(main, ["show", "--help"])
+    result = runner.invoke(main, ["peek", "--help"])
 
     assert result.exit_code == 0
-    assert "show" in result.output.lower()
+    assert "peek" in result.output.lower()
 
 
 def test_prep_command_registered(runner):
@@ -121,7 +121,7 @@ def test_not_in_repo_fails_for_list(runner):
 def test_not_in_repo_fails_for_show(runner):
     """Test that show command fails when not in repo."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["show", "bg-test"])
+        result = runner.invoke(main, ["peek", "bg-test"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
@@ -212,7 +212,7 @@ def test_list_with_invalid_format(runner, temp_repo):
 
 def test_show_requires_ticket_id(runner, temp_repo):
     """Test that show command requires a ticket ID."""
-    result = runner.invoke(main, ["show"])
+    result = runner.invoke(main, ["peek"])
 
     # Should be a usage error
     assert result.exit_code == 2
@@ -298,7 +298,7 @@ def test_tree_accepts_optional_id(runner, temp_repo):
 def test_command_help_available_for_all(runner):
     """Test that --help works for all commands."""
     commands = [
-        "init", "order", "list", "show", "edit", "note",
+        "init", "order", "list", "peek", "adjust", "note",
         "prep", "bag", "remake", "status",
         "ready", "blocked", "closed", "query",
         "dep", "undep", "link", "unlink", "tree", "cycle",
