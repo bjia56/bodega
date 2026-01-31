@@ -302,8 +302,7 @@ def test_command_help_available_for_all(runner):
         "prep", "bag", "remake", "status",
         "ready", "blocked", "served", "query",
         "needs", "free", "combo", "split", "tree", "cycle",
-        "reconcile", "compare",
-        "migrate-beads",
+        "reconcile", "compare", "transfer",
     ]
 
     for cmd in commands:

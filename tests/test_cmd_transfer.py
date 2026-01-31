@@ -1,4 +1,4 @@
-"""Tests for migrate-beads command."""
+"""Tests for transfer command."""
 
 from pathlib import Path
 import json
@@ -7,11 +7,51 @@ from bodega.cli import main
 
 
 # ============================================================================
-# Basic Migration Tests
+# Basic Transfer Tests
 # ============================================================================
 
-def test_migrate_beads_basic(runner, temp_repo):
-    """Test basic migration from beads format."""
+def test_transfer_default_from_beads(runner, temp_repo):
+    """Test transfer defaults to beads format when --from is not specified."""
+    # Create beads directory with test data
+    beads_dir = Path(".beads")
+    beads_dir.mkdir()
+
+    with open(beads_dir / "issues.jsonl", "w") as f:
+        f.write(json.dumps({"id": "test", "title": "Default test"}) + "\n")
+
+    # Run transfer without --from flag (should default to beads)
+    result = runner.invoke(main, ["transfer"])
+    assert result.exit_code == 0
+    assert "Created" in result.output
+
+    # Verify ticket was created
+    result = runner.invoke(main, ["list"])
+    assert result.exit_code == 0
+    assert "Default test" in result.output
+
+
+def test_transfer_explicit_from_beads(runner, temp_repo):
+    """Test transfer with explicit --from beads flag."""
+    # Create beads directory with test data
+    beads_dir = Path(".beads")
+    beads_dir.mkdir()
+
+    with open(beads_dir / "issues.jsonl", "w") as f:
+        f.write(json.dumps({"id": "test", "title": "Explicit test"}) + "\n")
+
+    # Run transfer with --from beads flag
+    result = runner.invoke(main, ["transfer", "--from", "beads"])
+    assert result.exit_code == 0
+    assert "Created" in result.output
+
+    # Verify ticket was created
+    result = runner.invoke(main, ["list"])
+    assert result.exit_code == 0
+    assert "Explicit test" in result.output
+
+
+def test_transfer_basic(runner, temp_repo):
+    """Test basic transfer from beads format."""
     # Create beads directory with test data
     beads_dir = Path(".beads")
     beads_dir.mkdir()
@@ -39,8 +79,8 @@ def test_migrate_beads_basic(runner, temp_repo):
         for issue in issues:
             f.write(json.dumps(issue) + "\n")
 
-    # Run migration
-    result = runner.invoke(main, ["migrate-beads"])
+    # Run transfer
+    result = runner.invoke(main, ["transfer", "--from", "beads"])
     assert result.exit_code == 0
     assert "Created" in result.output
     assert "2" in result.output
@@ -52,7 +92,7 @@ def test_migrate_beads_basic(runner, temp_repo):
     assert "Test issue 2" in result.output
 
 
-def test_migrate_beads_dry_run(runner, temp_repo):
+def test_transfer_dry_run(runner, temp_repo):
     """Test dry run mode doesn't create tickets."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
@@ -60,7 +100,7 @@ def test_migrate_beads_dry_run(runner, temp_repo):
     with open(beads_dir / "issues.jsonl", "w") as f:
         f.write(json.dumps({"id": "test", "title": "Test"}) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--dry-run"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--dry-run"])
     assert result.exit_code == 0
     assert "Would create" in result.output
     assert "Dry run" in result.output
@@ -70,7 +110,7 @@ def test_migrate_beads_dry_run(runner, temp_repo):
     assert "No tickets" in result.output or "Test" not in result.output
 
 
-def test_migrate_beads_preserve_ids(runner, temp_repo):
+def test_transfer_preserve_ids(runner, temp_repo):
     """Test preserving original beads IDs."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
@@ -78,7 +118,7 @@ def test_migrate_beads_preserve_ids(runner, temp_repo):
     with open(beads_dir / "issues.jsonl", "w") as f:
         f.write(json.dumps({"id": "bead-abc123", "title": "Test"}) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Check ticket has original ID
@@ -87,8 +127,8 @@ def test_migrate_beads_preserve_ids(runner, temp_repo):
     assert "Test" in result.output
 
 
-def test_migrate_beads_custom_path(runner, temp_repo):
-    """Test migration with custom beads path."""
+def test_transfer_custom_path(runner, temp_repo):
+    """Test transfer with custom beads path."""
     # Create beads directory in custom location
     custom_dir = Path("other/.beads")
     custom_dir.mkdir(parents=True)
@@ -96,27 +136,27 @@ def test_migrate_beads_custom_path(runner, temp_repo):
     with open(custom_dir / "issues.jsonl", "w") as f:
         f.write(json.dumps({"id": "test", "title": "Custom Path Test"}) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--path", "other/.beads"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--path", "other/.beads"])
     assert result.exit_code == 0
     assert "Created" in result.output
 
 
-def test_migrate_beads_missing_file(runner, temp_repo):
+def test_transfer_missing_file(runner, temp_repo):
     """Test error handling when beads file doesn't exist."""
-    result = runner.invoke(main, ["migrate-beads"])
+    result = runner.invoke(main, ["transfer", "--from", "beads"])
     assert result.exit_code == 1
     assert "not found" in result.output.lower()
 
 
-def test_migrate_beads_empty_file(runner, temp_repo):
-    """Test migration with empty beads file."""
+def test_transfer_empty_file(runner, temp_repo):
+    """Test transfer with empty beads file."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
     # Create empty file
     (beads_dir / "issues.jsonl").touch()
 
-    result = runner.invoke(main, ["migrate-beads"])
+    result = runner.invoke(main, ["transfer", "--from", "beads"])
     assert result.exit_code == 0
     assert "No issues found" in result.output
 
@@ -125,8 +165,8 @@ def test_migrate_beads_empty_file(runner, temp_repo):
 # Field Mapping Tests
 # ============================================================================
 
-def test_migrate_beads_all_fields(runner, temp_repo):
-    """Test migration with all fields populated."""
+def test_transfer_all_fields(runner, temp_repo):
+    """Test transfer with all fields populated."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
@@ -149,7 +189,7 @@ def test_migrate_beads_all_fields(runner, temp_repo):
     with open(beads_dir / "issues.jsonl", "w") as f:
         f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify all fields
@@ -167,7 +207,7 @@ def test_migrate_beads_all_fields(runner, temp_repo):
     assert "backend" in data["tags"]
 
 
-def test_migrate_beads_status_mapping(runner, temp_repo):
+def test_transfer_status_mapping(runner, temp_repo):
     """Test status field mapping."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
@@ -191,7 +231,7 @@ def test_migrate_beads_status_mapping(runner, temp_repo):
         with open(beads_dir / "issues.jsonl", "a") as f:
             f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify status mappings
@@ -203,7 +243,7 @@ def test_migrate_beads_status_mapping(runner, temp_repo):
             assert data["status"] == expected_status
 
 
-def test_migrate_beads_type_mapping(runner, temp_repo):
+def test_transfer_type_mapping(runner, temp_repo):
     """Test issue type field mapping."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
@@ -220,7 +260,7 @@ def test_migrate_beads_type_mapping(runner, temp_repo):
         with open(beads_dir / "issues.jsonl", "a") as f:
             f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify type mappings
@@ -233,11 +273,11 @@ def test_migrate_beads_type_mapping(runner, temp_repo):
 
 
 # ============================================================================
-# Dependency Migration Tests
+# Dependency Transfer Tests
 # ============================================================================
 
-def test_migrate_beads_dependencies(runner, temp_repo):
-    """Test migration of dependencies with ID remapping."""
+def test_transfer_dependencies(runner, temp_repo):
+    """Test transfer of dependencies with ID remapping."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
@@ -259,7 +299,7 @@ def test_migrate_beads_dependencies(runner, temp_repo):
         for issue in issues:
             f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads"])
+    result = runner.invoke(main, ["transfer", "--from", "beads"])
     assert result.exit_code == 0
 
     # Get the new IDs from output
@@ -267,8 +307,8 @@ def test_migrate_beads_dependencies(runner, temp_repo):
     assert len(lines) == 2
 
 
-def test_migrate_beads_links(runner, temp_repo):
-    """Test migration of related links."""
+def test_transfer_links(runner, temp_repo):
+    """Test transfer of related links."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
@@ -290,7 +330,7 @@ def test_migrate_beads_links(runner, temp_repo):
         for issue in issues:
             f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify link was created
@@ -299,8 +339,8 @@ def test_migrate_beads_links(runner, temp_repo):
     assert "bead-001" in data["links"]
 
 
-def test_migrate_beads_parent_child(runner, temp_repo):
-    """Test migration of parent-child relationships."""
+def test_transfer_parent_child(runner, temp_repo):
+    """Test transfer of parent-child relationships."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
@@ -322,7 +362,7 @@ def test_migrate_beads_parent_child(runner, temp_repo):
         for issue in issues:
             f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify parent was set
@@ -335,7 +375,7 @@ def test_migrate_beads_parent_child(runner, temp_repo):
 # Error Handling Tests
 # ============================================================================
 
-def test_migrate_beads_invalid_json(runner, temp_repo):
+def test_transfer_invalid_json(runner, temp_repo):
     """Test handling of invalid JSON lines."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
@@ -345,15 +385,15 @@ def test_migrate_beads_invalid_json(runner, temp_repo):
         f.write("{ invalid json }\n")
         f.write(json.dumps({"id": "good2", "title": "Good 2"}) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads"])
+    result = runner.invoke(main, ["transfer", "--from", "beads"])
     # Should succeed but show warning
     assert result.exit_code == 0
     assert "Warning" in result.output or "Invalid" in result.output
     assert "2 tickets" in result.output or "Created" in result.output
 
 
-def test_migrate_beads_notes_string(runner, temp_repo):
-    """Test migration with notes as string instead of list."""
+def test_transfer_notes_string(runner, temp_repo):
+    """Test transfer with notes as string instead of list."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
@@ -366,7 +406,7 @@ def test_migrate_beads_notes_string(runner, temp_repo):
     with open(beads_dir / "issues.jsonl", "w") as f:
         f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify notes were converted to list
@@ -376,8 +416,8 @@ def test_migrate_beads_notes_string(runner, temp_repo):
     assert "Single note string" in data["notes"]
 
 
-def test_migrate_beads_minimal_fields(runner, temp_repo):
-    """Test migration with only required fields."""
+def test_transfer_minimal_fields(runner, temp_repo):
+    """Test transfer with only required fields."""
     beads_dir = Path(".beads")
     beads_dir.mkdir()
 
@@ -389,7 +429,7 @@ def test_migrate_beads_minimal_fields(runner, temp_repo):
     with open(beads_dir / "issues.jsonl", "w") as f:
         f.write(json.dumps(issue) + "\n")
 
-    result = runner.invoke(main, ["migrate-beads", "--preserve-ids"])
+    result = runner.invoke(main, ["transfer", "--from", "beads", "--preserve-ids"])
     assert result.exit_code == 0
 
     # Verify defaults were applied

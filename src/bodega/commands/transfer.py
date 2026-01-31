@@ -1,4 +1,4 @@
-"""Migration commands - Import from other systems."""
+"""Transfer command - Import tickets from other systems."""
 
 import click
 import json
@@ -10,44 +10,55 @@ from bodega.models import Ticket, TicketType, TicketStatus
 from bodega.utils import generate_id
 
 
-@click.command("migrate-beads")
+@click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
+@click.option("--from", "from_system", type=click.Choice(["beads"], case_sensitive=False),
+              default="beads", help="Source system to transfer from (default: beads)")
 @click.option("--path", "-p", type=click.Path(exists=True),
-              help="Path to beads directory (default: .beads)")
+              help="Path to source directory (default: .beads)")
 @click.option("--dry-run", is_flag=True,
-              help="Show what would be imported without writing")
+              help="Show what would be transferred")
 @click.option("--preserve-ids", is_flag=True,
-              help="Keep original beads IDs instead of generating new ones")
+              help="Keep original IDs instead of generating new ones")
 @pass_context
-def migrate_beads(
+def transfer(
     ctx: Context,
+    from_system: str,
     path: str | None,
     dry_run: bool,
     preserve_ids: bool,
 ):
     """
-    Import tickets from a beads repository
+    Transfer tickets from another system
 
-    Reads .beads/issues.jsonl and creates bodega tickets.
+    Reads from the specified source system and creates bodega tickets.
+    Currently supports transferring from beads.
 
     Examples:
 
-        bodega migrate-beads
+        bodega transfer                        # Transfer from .beads
 
-        bodega migrate-beads --path /other/project/.beads
+        bodega transfer --from beads           # Explicit source
 
-        bodega migrate-beads --dry-run
+        bodega transfer --path /other/.beads   # Custom path
 
-        bodega migrate-beads --preserve-ids
+        bodega transfer --dry-run              # Show what would transfer
+
+        bodega transfer --preserve-ids         # Keep original IDs
     """
     storage = require_repo(ctx)
+
+    # Currently only beads is supported
+    if from_system.lower() != "beads":
+        click.echo(f"Error: Unsupported source system: {from_system}", err=True)
+        raise SystemExit(1)
 
     # Find beads directory
     beads_path = Path(path) if path else Path.cwd() / ".beads"
     issues_file = beads_path / "issues.jsonl"
 
     if not issues_file.exists():
-        click.echo(f"Error: Beads issues file not found: {issues_file}", err=True)
+        click.echo(f"Error: Source file not found: {issues_file}", err=True)
         raise SystemExit(1)
 
     # Read and parse beads issues
@@ -64,10 +75,10 @@ def migrate_beads(
                 click.echo(f"Warning: Invalid JSON on line {line_num}: {e}", err=True)
 
     if not issues:
-        click.echo("No issues found to migrate.")
+        click.echo("No issues found to transfer.")
         return
 
-    click.echo(f"Found {len(issues)} beads issues to migrate.")
+    click.echo(f"Found {len(issues)} issues to transfer.")
 
     # Build ID mapping (old -> new)
     id_map = {}
@@ -95,12 +106,12 @@ def migrate_beads(
 
         except Exception as e:
             old_id = issue.get("id", "unknown")
-            click.echo(f"  Error migrating {old_id}: {e}", err=True)
+            click.echo(f"  Error transferring {old_id}: {e}", err=True)
 
     if dry_run:
-        click.echo(f"\nDry run complete. Would migrate {migrated} tickets.")
+        click.echo(f"\nDry run complete. Would transfer {migrated} tickets.")
     else:
-        click.echo(f"\nMigration complete. Created {migrated} tickets.")
+        click.echo(f"\nTransfer complete. Created {migrated} tickets.")
 
 
 def convert_beads_issue(
