@@ -30,29 +30,29 @@ Options:
   --debug     Enable debug output
 
 Commands:
-  blocked        List tickets that are blocked by dependencies
-  close          Set ticket status to closed
-  closed         List recently closed tickets
-  create         Create a new ticket
-  cycle          Detect circular dependencies
-  dep            Add a dependency (BLOCKER blocks ID)
-  edit           Edit ticket properties or open in $EDITOR
-  init           Initialize a new bodega repository
-  link           Create a symmetric link between tickets
-  list           List tickets with optional filters
-  migrate-beads  Import tickets from a beads repository
-  note           Add a timestamped note to a ticket
-  query          Output tickets as JSON for scripting
-  ready          List tickets that are ready to work on
-  reopen         Set ticket status back to open
-  show           Display ticket details
-  start          Set ticket status to in-progress
-  status         Get ticket status
-  sync           Synchronize tickets between main and bodega branches
-  sync-status    Show sync status between main and bodega branches
-  tree           Display dependency tree
-  undep          Remove a dependency
-  unlink         Remove a link between tickets
+  adjust     Adjust the order
+  bag        Bag it up - order complete!
+  blocked    List tickets that are blocked by dependencies
+  combo      Bundle orders together
+  compare    Compare ticket branches
+  cycle      Detect circular dependencies
+  free       Remove the dependency - order is free to proceed
+  list       List tickets with optional filters
+  needs      Order needs another item first
+  note       Add a note to the order
+  open       Open the bodega for business
+  order      Place a new order at the counter
+  peek       Take a look at order details
+  prep       Start prepping the order
+  query      Output tickets as JSON for scripting
+  ready      List tickets that are ready to work on
+  reconcile  Reconcile tickets between branches
+  remake     Remake an order
+  served     Show recently served orders
+  split      Split bundled orders
+  status     Get ticket status
+  transfer   Transfer tickets from another system
+  tree       Display dependency tree
 ```
 
 ## License
