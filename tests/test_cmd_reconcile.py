@@ -1,4 +1,4 @@
-"""Tests for sync command."""
+"""Tests for reconcile command."""
 
 import pytest
 import subprocess
@@ -10,31 +10,31 @@ from bodega.worktree import init_worktree
 
 
 # ============================================================================
-# Sync Command Tests
+# Reconcile Command Tests
 # ============================================================================
 
-def test_sync_command_requires_git_repo(runner):
-    """Test that sync fails if not in a git repository."""
+def test_reconcile_command_requires_git_repo(runner):
+    """Test that reconcile fails if not in a git repository."""
     with runner.isolated_filesystem():
         init_repository()
 
-        result = runner.invoke(main, ["sync"])
+        result = runner.invoke(main, ["reconcile"])
 
         assert result.exit_code != 0
         assert "Not in a git repository" in result.output
 
 
-def test_sync_command_requires_bodega_init(runner, temp_git_repo):
-    """Test that sync fails if bodega not initialized."""
-    result = runner.invoke(main, ["sync"])
+def test_reconcile_command_requires_bodega_init(runner, temp_git_repo):
+    """Test that reconcile fails if bodega not initialized."""
+    result = runner.invoke(main, ["reconcile"])
     print(result.output)
 
     assert result.exit_code != 0
     assert "Not in a bodega repository" in result.output
 
 
-def test_sync_command_basic(runner, temp_git_repo):
-    """Test basic sync command execution."""
+def test_reconcile_command_basic(runner, temp_git_repo):
+    """Test basic reconcile command execution."""
     # Initialize bodega with worktree
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     print(result.output)
@@ -58,15 +58,15 @@ def test_sync_command_basic(runner, temp_git_repo):
     assert result.exit_code == 0
 
     # Sync
-    result = runner.invoke(main, ["sync"])
+    result = runner.invoke(main, ["reconcile"])
     print(result.output)
     assert result.exit_code == 0
     assert "Merged" in result.output
     assert "bodega → main" in result.output or "bodega → master" in result.output
 
 
-def test_sync_command_dry_run(runner, temp_git_repo):
-    """Test sync --dry-run doesn't make changes."""
+def test_reconcile_command_dry_run(runner, temp_git_repo):
+    """Test reconcile --dry-run doesn't make changes."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -88,15 +88,15 @@ def test_sync_command_dry_run(runner, temp_git_repo):
     assert result.exit_code == 0
 
     # Dry run
-    result = runner.invoke(main, ["sync", "--dry-run"])
+    result = runner.invoke(main, ["reconcile", "--dry-run"])
 
     assert result.exit_code == 0
     assert "Sync status:" in result.output
     assert "commits" in result.output
 
 
-def test_sync_command_no_merge_main(runner, temp_git_repo):
-    """Test sync --no-merge-main flag."""
+def test_reconcile_command_no_merge_main(runner, temp_git_repo):
+    """Test reconcile --no-merge-main flag."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -118,7 +118,7 @@ def test_sync_command_no_merge_main(runner, temp_git_repo):
     assert result.exit_code == 0
 
     # Sync without merging to main
-    result = runner.invoke(main, ["sync", "--no-merge-main"])
+    result = runner.invoke(main, ["reconcile", "--no-merge-main"])
 
     assert result.exit_code == 0
     # Should not mention merge to main
@@ -126,8 +126,8 @@ def test_sync_command_no_merge_main(runner, temp_git_repo):
     assert "bodega → main" not in output_lower and "bodega → master" not in output_lower
 
 
-def test_sync_command_with_uncommitted_changes(runner, temp_git_repo):
-    """Test sync fails with uncommitted changes in .bodega."""
+def test_reconcile_command_with_uncommitted_changes(runner, temp_git_repo):
+    """Test reconcile fails with uncommitted changes in .bodega."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -150,14 +150,14 @@ def test_sync_command_with_uncommitted_changes(runner, temp_git_repo):
     test_file.write_text("uncommitted")
 
     # Sync should fail
-    result = runner.invoke(main, ["sync"])
+    result = runner.invoke(main, ["reconcile"])
 
     assert result.exit_code != 0
     assert "Uncommitted changes" in result.output
 
 
-def test_sync_command_updates_main_branch(runner, temp_git_repo):
-    """Test that sync creates files in main branch's .bodega."""
+def test_reconcile_command_updates_main_branch(runner, temp_git_repo):
+    """Test that reconcile creates files in main branch's .bodega."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -180,7 +180,7 @@ def test_sync_command_updates_main_branch(runner, temp_git_repo):
     ticket_id = result.output.strip()
 
     # Sync
-    result = runner.invoke(main, ["sync"])
+    result = runner.invoke(main, ["reconcile"])
     assert result.exit_code == 0
 
     # Check that ticket file appears in main's .bodega (uncommitted)
@@ -200,30 +200,30 @@ def test_sync_command_updates_main_branch(runner, temp_git_repo):
 
 
 # ============================================================================
-# sync-status Command Tests
+# Compare Command Tests
 # ============================================================================
 
-def test_sync_status_command_requires_git_repo(runner):
-    """Test that sync-status fails if not in a git repository."""
+def test_compare_command_requires_git_repo(runner):
+    """Test that compare fails if not in a git repository."""
     with runner.isolated_filesystem():
         init_repository()
 
-        result = runner.invoke(main, ["sync-status"])
+        result = runner.invoke(main, ["compare"])
 
         assert result.exit_code != 0
         assert "Not in a git repository" in result.output
 
 
-def test_sync_status_command_requires_bodega_init(runner, temp_git_repo):
-    """Test that sync-status fails if bodega not initialized."""
-    result = runner.invoke(main, ["sync-status"])
+def test_compare_command_requires_bodega_init(runner, temp_git_repo):
+    """Test that compare fails if bodega not initialized."""
+    result = runner.invoke(main, ["compare"])
 
     assert result.exit_code != 0
     assert "Not in a bodega repository" in result.output
 
 
-def test_sync_status_command_shows_sync_info(runner, temp_git_repo):
-    """Test sync-status command shows sync information."""
+def test_compare_command_shows_sync_info(runner, temp_git_repo):
+    """Test compare command shows sync information."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -240,8 +240,8 @@ def test_sync_status_command_shows_sync_info(runner, temp_git_repo):
         capture_output=True
     )
 
-    # Run sync-status
-    result = runner.invoke(main, ["sync-status"])
+    # Run compare
+    result = runner.invoke(main, ["compare"])
 
     assert result.exit_code == 0
     assert "Bodega branch:" in result.output
@@ -250,8 +250,8 @@ def test_sync_status_command_shows_sync_info(runner, temp_git_repo):
     assert "Worktree status:" in result.output
 
 
-def test_sync_status_command_shows_ticket_count(runner, temp_git_repo):
-    """Test sync-status shows number of tickets."""
+def test_compare_command_shows_ticket_count(runner, temp_git_repo):
+    """Test compare shows number of tickets."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -273,15 +273,15 @@ def test_sync_status_command_shows_ticket_count(runner, temp_git_repo):
     runner.invoke(main, ["order", "Ticket 2"])
     runner.invoke(main, ["order", "Ticket 3"])
 
-    # Run sync-status
-    result = runner.invoke(main, ["sync-status"])
+    # Run compare
+    result = runner.invoke(main, ["compare"])
 
     assert result.exit_code == 0
     assert "Tickets: 3 files" in result.output
 
 
-def test_sync_status_command_shows_uncommitted_warning(runner, temp_git_repo):
-    """Test sync-status shows warning for uncommitted changes."""
+def test_compare_command_shows_uncommitted_warning(runner, temp_git_repo):
+    """Test compare shows warning for uncommitted changes."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -303,15 +303,15 @@ def test_sync_status_command_shows_uncommitted_warning(runner, temp_git_repo):
     test_file = bodega_dir / "test.txt"
     test_file.write_text("uncommitted")
 
-    # Run sync-status
-    result = runner.invoke(main, ["sync-status"])
+    # Run compare
+    result = runner.invoke(main, ["compare"])
 
     assert result.exit_code == 0
     assert "Uncommitted changes" in result.output or "⚠" in result.output
 
 
-def test_sync_status_command_in_sync(runner, temp_git_repo):
-    """Test sync-status shows 'In sync' when synchronized."""
+def test_compare_command_in_sync(runner, temp_git_repo):
+    """Test compare shows 'In sync' when synchronized."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -330,17 +330,17 @@ def test_sync_status_command_in_sync(runner, temp_git_repo):
 
     # Create and sync a ticket
     runner.invoke(main, ["order", "Test ticket"])
-    runner.invoke(main, ["sync"])
+    runner.invoke(main, ["reconcile"])
 
-    # Run sync-status
-    result = runner.invoke(main, ["sync-status"])
+    # Run compare
+    result = runner.invoke(main, ["compare"])
 
     assert result.exit_code == 0
     assert "In sync" in result.output or "0 commits" in result.output
 
 
-def test_sync_status_command_out_of_sync(runner, temp_git_repo):
-    """Test sync-status shows 'Out of sync' when not synchronized."""
+def test_compare_command_out_of_sync(runner, temp_git_repo):
+    """Test compare shows 'Out of sync' when not synchronized."""
     # Initialize bodega
     result = runner.invoke(main, ["open", "--branch", "bodega"])
     assert result.exit_code == 0
@@ -360,8 +360,8 @@ def test_sync_status_command_out_of_sync(runner, temp_git_repo):
     # Create ticket (will be on bodega branch, not synced to main yet)
     runner.invoke(main, ["order", "Test ticket"])
 
-    # Run sync-status without syncing
-    result = runner.invoke(main, ["sync-status"])
+    # Run compare without syncing
+    result = runner.invoke(main, ["compare"])
 
     assert result.exit_code == 0
     assert "Out of sync" in result.output or "commits ahead" in result.output
@@ -403,7 +403,7 @@ def test_full_workflow_create_sync_commit(runner, temp_git_repo):
         assert ticket_id in result.output
 
     # 4. Sync to main
-    result = runner.invoke(main, ["sync"])
+    result = runner.invoke(main, ["reconcile"])
     assert result.exit_code == 0
 
     # 5. Verify tickets exist in main's .bodega
@@ -441,7 +441,7 @@ def test_workflow_with_ticket_updates(runner, temp_git_repo):
     assert result.exit_code == 0
 
     # Sync
-    result = runner.invoke(main, ["sync"])
+    result = runner.invoke(main, ["reconcile"])
     assert result.exit_code == 0
 
     # Verify ticket is closed in synced files

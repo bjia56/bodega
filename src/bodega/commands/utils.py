@@ -57,7 +57,7 @@ def require_repo(ctx: Context) -> TicketStorage:
         SystemExit: If not in a repository
     """
     if not ctx.storage:
-        click.echo("Error: Not in a bodega repository. Run 'bodega init' first.", err=True)
+        click.echo("Error: Not in a bodega repository. Run 'bodega open' first.", err=True)
         sys.exit(1)
     return ctx.storage
 

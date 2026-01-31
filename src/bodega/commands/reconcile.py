@@ -1,4 +1,4 @@
-"""Sync command - Synchronize tickets between main and bodega branches."""
+"""Reconcile command - Reconcile tickets between branches."""
 
 import click
 from pathlib import Path
@@ -12,30 +12,29 @@ from bodega.worktree import get_current_branch
 
 @click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
-@click.option("--dry-run", is_flag=True, help="Show what would be synced without making changes")
-@click.option("--no-merge-main", is_flag=True, help="Skip merging bodega → main (one-way sync)")
+@click.option("--dry-run", is_flag=True, help="Show what would be synced")
+@click.option("--no-merge-main", is_flag=True, help="Skip merging main → bodega")
 @pass_context
-def sync(ctx: Context, dry_run: bool, no_merge_main: bool):
+def reconcile(ctx: Context, dry_run: bool, no_merge_main: bool):
     """
-    Synchronize tickets between main and bodega branches
+    Reconcile tickets between branches
 
-    Performs two-way merge:
-      1. main → bodega (bring ticket commits from main)
-      2. bodega → main (bring ticket commits from bodega)
+    Performs two-way merge between main and bodega branches:
+      1. Merges main → bodega branch (updates tickets with code changes)
+      2. Merges bodega → main branch (brings tickets to main)
 
-    After sync, ticket files appear in main branch as uncommitted changes.
-    You must manually commit them to your main branch.
+    This keeps tickets synchronized with your main branch.
 
     Examples:
 
-        bodega sync              # Two-way sync
+        bodega reconcile              # Two-way sync
 
-        bodega sync --dry-run    # Show what would be synced
+        bodega reconcile --dry-run    # Show what would be synced
 
-        bodega sync --no-merge-main  # Only sync main → bodega
+        bodega reconcile --no-merge-main  # Only sync bodega → main
     """
     if not ctx.storage:
-        click.echo("Error: Not in a bodega repository. Run 'bodega init' first.", err=True)
+        click.echo("Error: Not in a bodega repository. Run 'bodega open' first.", err=True)
         raise SystemExit(1)
 
     repo_root = find_repo_root()
@@ -109,21 +108,25 @@ def sync(ctx: Context, dry_run: bool, no_merge_main: bool):
         raise SystemExit(1)
 
 
-@click.command("sync-status")
+@click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
 @pass_context
-def status(ctx: Context):
+def compare(ctx: Context):
     """
-    Show sync status between main and bodega branches
+    Compare ticket branches
 
-    Displays:
+    Displays current sync status between branches:
       - Current branch
       - Commits ahead/behind
       - Uncommitted changes
-      - Sync recommendations
+      - Whether sync is needed
+
+    Examples:
+
+        bodega compare
     """
     if not ctx.storage:
-        click.echo("Error: Not in a bodega repository. Run 'bodega init' first.", err=True)
+        click.echo("Error: Not in a bodega repository. Run 'bodega open' first.", err=True)
         raise SystemExit(1)
 
     repo_root = find_repo_root()
@@ -170,7 +173,7 @@ def status(ctx: Context):
 
         if sync_status.uncommitted_in_main:
             click.echo(f"\n⚠ Uncommitted changes in .bodega/ on {current_branch}")
-            click.echo("  Commit or stash before running 'bodega sync'")
+            click.echo("  Commit or stash before running 'bodega reconcile'")
 
         click.echo()
 
@@ -180,7 +183,7 @@ def status(ctx: Context):
                      sync_status.uncommitted_in_worktree)
 
         if needs_sync and not sync_status.uncommitted_in_main:
-            click.echo("Status: Out of sync (run 'bodega sync' to synchronize)")
+            click.echo("Status: Out of sync (run 'bodega reconcile' to synchronize)")
         elif sync_status.uncommitted_in_main:
             click.echo("Status: Cannot sync (uncommitted changes in .bodega/)")
         else:

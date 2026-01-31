@@ -115,7 +115,7 @@ def test_not_in_repo_fails_for_list(runner):
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
-        assert "bodega init" in result.output
+        assert "bodega open" in result.output
 
 
 def test_not_in_repo_fails_for_show(runner):
@@ -125,7 +125,7 @@ def test_not_in_repo_fails_for_show(runner):
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
-
+        assert "bodega open" in result.output
 
 def test_open_works_without_repo(runner):
     """Test that open command works even when not in a repo."""
@@ -302,6 +302,7 @@ def test_command_help_available_for_all(runner):
         "prep", "bag", "remake", "status",
         "ready", "blocked", "served", "query",
         "needs", "free", "combo", "split", "tree", "cycle",
+        "reconcile", "compare",
         "migrate-beads",
     ]
 
