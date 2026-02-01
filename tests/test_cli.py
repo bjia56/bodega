@@ -47,20 +47,20 @@ def test_debug_flag(runner):
 # Command Registration Tests
 # ============================================================================
 
-def test_open_command_registered(runner):
-    """Test that open command is registered."""
-    result = runner.invoke(main, ["open", "--help"])
+def test_init_command_registered(runner):
+    """Test that init command is registered."""
+    result = runner.invoke(main, ["init", "--help"])
 
     assert result.exit_code == 0
-    assert "open" in result.output.lower()
+    assert "init" in result.output.lower()
 
 
-def test_order_command_registered(runner):
-    """Test that order command is registered."""
-    result = runner.invoke(main, ["order", "--help"])
+def test_create_command_registered(runner):
+    """Test that create command is registered."""
+    result = runner.invoke(main, ["create", "--help"])
 
     assert result.exit_code == 0
-    assert "order" in result.output.lower()
+    assert "create" in result.output.lower()
 
 
 def test_list_command_registered(runner):
@@ -73,26 +73,27 @@ def test_list_command_registered(runner):
 
 def test_show_command_registered(runner):
     """Test that show command is registered."""
-    result = runner.invoke(main, ["peek", "--help"])
+    result = runner.invoke(main, ["show", "--help"])
 
     assert result.exit_code == 0
-    assert "peek" in result.output.lower()
+    assert "show" in result.output.lower()
 
 
-def test_prep_command_registered(runner):
-    """Test that prep command is registered."""
-    result = runner.invoke(main, ["prep", "--help"])
-
-    assert result.exit_code == 0
-    assert "prep" in result.output.lower()
-
-
-def test_bag_command_registered(runner):
-    """Test that bag command is registered."""
-    result = runner.invoke(main, ["bag", "--help"])
+def test_start_command_registered(runner):
+    """Test that start command is registered."""
+    result = runner.invoke(main, ["start", "--help"])
 
     assert result.exit_code == 0
-    assert "bag" in result.output.lower()
+    assert "start" in result.output.lower()
+
+
+def test_close_command_registered(runner):
+    """Test that close command is registered."""
+    result = runner.invoke(main, ["close", "--help"])
+
+    assert result.exit_code == 0
+    assert "close" in result.output.lower()
+
 
 def test_tree_command_registered(runner):
     """Test that tree command is registered."""
@@ -115,22 +116,22 @@ def test_not_in_repo_fails_for_list(runner):
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
-        assert "bodega open" in result.output
+        assert "bodega init" in result.output
 
 
 def test_not_in_repo_fails_for_show(runner):
     """Test that show command fails when not in repo."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["peek", "bg-test"])
+        result = runner.invoke(main, ["show", "bg-test"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
-        assert "bodega open" in result.output
 
-def test_open_works_without_repo(runner):
-    """Test that open command works even when not in a repo."""
+
+def test_init_works_without_repo(runner):
+    """Test that init command works even when not in a repo."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["open", "--help"])
+        result = runner.invoke(main, ["init", "--help"])
 
         # Should show help successfully
         assert result.exit_code == 0
@@ -212,37 +213,37 @@ def test_list_with_invalid_format(runner, temp_repo):
 
 def test_show_requires_ticket_id(runner, temp_repo):
     """Test that show command requires a ticket ID."""
-    result = runner.invoke(main, ["peek"])
+    result = runner.invoke(main, ["show"])
 
     # Should be a usage error
     assert result.exit_code == 2
     assert "Missing argument" in result.output or "ID" in result.output
 
 
-def test_prep_requires_ticket_id(runner, temp_repo):
-    """Test that prep command requires a ticket ID."""
-    result = runner.invoke(main, ["prep"])
+def test_start_requires_ticket_id(runner, temp_repo):
+    """Test that start command requires a ticket ID."""
+    result = runner.invoke(main, ["start"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output or "ID" in result.output
 
 
-def test_bag_requires_ticket_id(runner, temp_repo):
-    """Test that bag command requires a ticket ID."""
-    result = runner.invoke(main, ["bag"])
+def test_close_requires_ticket_id(runner, temp_repo):
+    """Test that close command requires a ticket ID."""
+    result = runner.invoke(main, ["close"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output or "ID" in result.output
 
 
 # ============================================================================
-# Order Command Tests
+# Create Command Tests
 # ============================================================================
 
-def test_order_accepts_options(runner, temp_repo):
-    """Test that order command accepts various options."""
+def test_create_accepts_options(runner, temp_repo):
+    """Test that create command accepts various options."""
     result = runner.invoke(main, [
-        "order",
+        "create",
         "Test ticket",
         "--type", "bug",
         "--priority", "1",
@@ -259,17 +260,17 @@ def test_order_accepts_options(runner, temp_repo):
 # Dependency Command Tests
 # ============================================================================
 
-def test_needs_requires_two_ids(runner, temp_repo):
-    """Test that needs command requires two ticket IDs."""
-    result = runner.invoke(main, ["needs"])
+def test_dep_requires_two_ids(runner, temp_repo):
+    """Test that dep command requires two ticket IDs."""
+    result = runner.invoke(main, ["dep"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output
 
 
-def test_needs_accepts_two_ids(runner, temp_repo):
-    """Test that needs command accepts two IDs."""
-    result = runner.invoke(main, ["needs", "bg-aaa", "bg-bbb"])
+def test_dep_accepts_two_ids(runner, temp_repo):
+    """Test that dep command accepts two IDs."""
+    result = runner.invoke(main, ["dep", "bg-aaa", "bg-bbb"])
 
     # Should not be a usage error
     assert result.exit_code != 2
@@ -298,11 +299,11 @@ def test_tree_accepts_optional_id(runner, temp_repo):
 def test_command_help_available_for_all(runner):
     """Test that --help works for all commands."""
     commands = [
-        "open", "order", "list", "peek", "adjust", "note",
-        "prep", "bag", "remake", "status",
-        "ready", "blocked", "served", "query",
-        "needs", "free", "related", "split", "tree", "cycle",
-        "reconcile", "compare", "transfer",
+        "init", "create", "list", "show", "edit", "note",
+        "start", "close", "reopen", "status",
+        "ready", "blocked", "closed", "query",
+        "dep", "undep", "link", "unlink", "tree", "cycle",
+        "migrate-beads",
     ]
 
     for cmd in commands:
@@ -312,13 +313,13 @@ def test_command_help_available_for_all(runner):
 
 
 # ============================================================================
-# Open Command Tests
+# Init Command Tests
 # ============================================================================
 
-def test_open_creates_directory(runner):
-    """Test that open creates .bodega directory and config."""
+def test_init_creates_directory(runner):
+    """Test that init creates .bodega directory and config."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["open"])
+        result = runner.invoke(main, ["init"])
 
         assert result.exit_code == 0
         assert Path(".bodega").is_dir()
@@ -326,61 +327,61 @@ def test_open_creates_directory(runner):
         assert "Initialized bodega repository" in result.output
 
 
-def test_open_fails_if_exists(runner):
-    """Test that open fails if .bodega already exists."""
+def test_init_fails_if_exists(runner):
+    """Test that init fails if .bodega already exists."""
     with runner.isolated_filesystem():
         Path(".bodega").mkdir()
-        result = runner.invoke(main, ["open"])
+        result = runner.invoke(main, ["init"])
 
         assert result.exit_code == 1
         assert "already exists" in result.output
 
 
-def test_open_force(runner):
-    """Test that open --force reinitializes existing repo."""
+def test_init_force(runner):
+    """Test that init --force reinitializes existing repo."""
     with runner.isolated_filesystem():
         Path(".bodega").mkdir()
-        result = runner.invoke(main, ["open", "--force"])
+        result = runner.invoke(main, ["init", "--force"])
 
         assert result.exit_code == 0
         assert Path(".bodega/config.yaml").is_file()
         assert "Initialized bodega repository" in result.output
 
 
-def test_open_with_path(runner):
-    """Test that open works with specified path."""
+def test_init_with_path(runner):
+    """Test that init works with specified path."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["open", "subdir"])
+        result = runner.invoke(main, ["init", "subdir"])
 
         assert result.exit_code == 0
         assert Path("subdir/.bodega").is_dir()
         assert Path("subdir/.bodega/config.yaml").is_file()
 
 
-def test_open_with_relative_path(runner):
-    """Test that open works with relative path."""
+def test_init_with_relative_path(runner):
+    """Test that init works with relative path."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["open", "./myproject"])
+        result = runner.invoke(main, ["init", "./myproject"])
 
         assert result.exit_code == 0
         assert Path("myproject/.bodega").is_dir()
         assert Path("myproject/.bodega/config.yaml").is_file()
 
 
-def test_open_creates_parents(runner):
-    """Test that open creates parent directories if needed."""
+def test_init_creates_parents(runner):
+    """Test that init creates parent directories if needed."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["open", "parent/child/repo"])
+        result = runner.invoke(main, ["init", "parent/child/repo"])
 
         assert result.exit_code == 0
         assert Path("parent/child/repo/.bodega").is_dir()
         assert Path("parent/child/repo/.bodega/config.yaml").is_file()
 
 
-def test_open_output_message(runner):
-    """Test that open outputs correct message with path."""
+def test_init_output_message(runner):
+    """Test that init outputs correct message with path."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["open"])
+        result = runner.invoke(main, ["init"])
 
         assert result.exit_code == 0
         # Should show the absolute path to .bodega

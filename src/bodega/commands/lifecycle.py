@@ -11,17 +11,15 @@ from bodega.errors import TicketNotFoundError, AmbiguousIDError
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
-def prep(ctx: Context, ticket_id: str):
+def start(ctx: Context, ticket_id: str):
     """
-    Start prepping the order
-
-    Marks the ticket as in-progress and sets the started timestamp.
+    Set ticket status to in-progress
 
     Examples:
 
-        bodega prep bg-a1b2c3
+        bodega start bg-a1b2c3
 
-        bodega prep bg-a1b  # Partial ID
+        bodega start a1b  # Partial ID
     """
     storage = require_repo(ctx)
 
@@ -51,17 +49,15 @@ def prep(ctx: Context, ticket_id: str):
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
-def bag(ctx: Context, ticket_id: str):
+def close(ctx: Context, ticket_id: str):
     """
-    Bag it up - order complete!
-
-    Marks the ticket as closed and sets the closed timestamp.
+    Set ticket status to closed
 
     Examples:
 
-        bodega bag bg-a1b2c3
+        bodega close bg-a1b2c3
 
-        bodega bag bg-a1b
+        bodega close a1b
     """
     storage = require_repo(ctx)
 
@@ -91,17 +87,13 @@ def bag(ctx: Context, ticket_id: str):
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
 @pass_context
-def remake(ctx: Context, ticket_id: str):
+def reopen(ctx: Context, ticket_id: str):
     """
-    Remake an order
-
-    Reopens a closed ticket by changing its status back to open.
+    Set ticket status back to open
 
     Examples:
 
-        bodega remake bg-a1b2c3
-
-        bodega remake a1b  # Partial ID
+        bodega reopen bg-a1b2c3
     """
     storage = require_repo(ctx)
 

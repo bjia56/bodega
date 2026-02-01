@@ -137,7 +137,7 @@ def temp_repo_with_ticket(runner):
         init_repository()
 
         # Create a single ticket
-        result = runner.invoke(main, ["order", "Test ticket", "--description", "Test description"])
+        result = runner.invoke(main, ["create", "Test ticket", "--description", "Test description"])
         ticket_id = result.output.strip()
 
         yield ticket_id
@@ -162,21 +162,21 @@ def temp_repo_with_tickets(runner):
 
         # Bug with high priority
         result = runner.invoke(main, [
-            "order", "-t", "bug", "-p", "1", "--tag", "urgent",
+            "create", "-t", "bug", "-p", "1", "--tag", "urgent",
             "Critical bug"
         ])
         tickets.append(result.output.strip())
 
         # Feature with normal priority
         result = runner.invoke(main, [
-            "order", "-t", "feature", "-p", "2", "--tag", "api",
+            "create", "-t", "feature", "-p", "2", "--tag", "api",
             "New feature"
         ])
         tickets.append(result.output.strip())
 
         # Task with low priority
         result = runner.invoke(main, [
-            "order", "-t", "task", "-p", "3",
+            "create", "-t", "task", "-p", "3",
             "Regular task"
         ])
         tickets.append(result.output.strip())

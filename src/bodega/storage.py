@@ -64,7 +64,7 @@ class TicketStorage:
         """
         self.config = config or load_config()
         if not self.config.bodega_dir:
-            raise StorageError("Not in a bodega repository. Run 'bodega open' first.")
+            raise StorageError("Not in a bodega repository. Run 'bodega init' first.")
 
         # Determine storage mode based on git_branch config
         if self.config.git_branch:

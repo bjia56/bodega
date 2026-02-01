@@ -1,4 +1,4 @@
-"""Tests for list commands (list, ready, blocked, served, query)."""
+"""Tests for list commands (list, ready, blocked, closed, query)."""
 
 import json
 
@@ -34,7 +34,7 @@ def test_list_excludes_closed_by_default(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close one ticket
-    runner.invoke(main, ["bag", tickets[0]])
+    runner.invoke(main, ["close", tickets[0]])
 
     result = runner.invoke(main, ["list"])
 
@@ -50,7 +50,7 @@ def test_list_with_all_flag(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close one ticket
-    runner.invoke(main, ["bag", tickets[0]])
+    runner.invoke(main, ["close", tickets[0]])
 
     result = runner.invoke(main, ["list", "--all"])
 
@@ -65,7 +65,7 @@ def test_list_filter_by_status(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Start working on one ticket
-    runner.invoke(main, ["prep", tickets[0]])
+    runner.invoke(main, ["start", tickets[0]])
 
     result = runner.invoke(main, ["list", "-s", "in-progress"])
 
@@ -108,7 +108,7 @@ def test_list_filter_by_priority(runner, temp_repo_with_tickets):
 def test_list_filter_by_assignee(runner, temp_repo):
     """Test filtering by assignee."""
     # Create ticket with assignee
-    runner.invoke(main, ["order", "-a", "alice", "Alice's ticket"])
+    runner.invoke(main, ["create", "-a", "alice", "Alice's ticket"])
 
     result = runner.invoke(main, ["list", "--assignee", "alice"])
 
@@ -255,11 +255,11 @@ def test_ready_shows_unblocked_tickets(runner, temp_repo_with_tickets):
 def test_ready_excludes_blocked_tickets(runner, temp_repo):
     """Test that ready excludes tickets with open dependencies."""
     # Create blocker ticket
-    result = runner.invoke(main, ["order", "Blocker ticket"])
+    result = runner.invoke(main, ["create", "Blocker ticket"])
     blocker_id = result.output.strip()
 
     # Create blocked ticket
-    result = runner.invoke(main, ["order", "-d", blocker_id, "Blocked ticket"])
+    result = runner.invoke(main, ["create", "-d", blocker_id, "Blocked ticket"])
     blocked_id = result.output.strip()
 
     result = runner.invoke(main, ["ready"])
@@ -274,15 +274,15 @@ def test_ready_excludes_blocked_tickets(runner, temp_repo):
 def test_ready_includes_tickets_with_closed_deps(runner, temp_repo):
     """Test that ready includes tickets whose deps are closed."""
     # Create blocker ticket
-    result = runner.invoke(main, ["order", "Blocker ticket"])
+    result = runner.invoke(main, ["create", "Blocker ticket"])
     blocker_id = result.output.strip()
 
     # Create blocked ticket
-    result = runner.invoke(main, ["order", "-d", blocker_id, "Blocked ticket"])
+    result = runner.invoke(main, ["create", "-d", blocker_id, "Blocked ticket"])
     blocked_id = result.output.strip()
 
     # Close the blocker
-    runner.invoke(main, ["bag", blocker_id])
+    runner.invoke(main, ["close", blocker_id])
 
     result = runner.invoke(main, ["ready"])
 
@@ -307,11 +307,11 @@ def test_ready_fails_without_repo(runner):
 def test_blocked_shows_blocked_tickets(runner, temp_repo):
     """Test that blocked shows tickets with open dependencies."""
     # Create blocker ticket
-    result = runner.invoke(main, ["order", "Blocker ticket"])
+    result = runner.invoke(main, ["create", "Blocker ticket"])
     blocker_id = result.output.strip()
 
     # Create blocked ticket
-    result = runner.invoke(main, ["order", "-d", blocker_id, "Blocked ticket"])
+    result = runner.invoke(main, ["create", "-d", blocker_id, "Blocked ticket"])
     blocked_id = result.output.strip()
 
     result = runner.invoke(main, ["blocked"])
@@ -325,15 +325,15 @@ def test_blocked_shows_blocked_tickets(runner, temp_repo):
 def test_blocked_shows_blocker_ids(runner, temp_repo):
     """Test that blocked shows which tickets are blocking."""
     # Create two blocker tickets
-    result = runner.invoke(main, ["order", "Blocker 1"])
+    result = runner.invoke(main, ["create", "Blocker 1"])
     blocker1 = result.output.strip()
 
-    result = runner.invoke(main, ["order", "Blocker 2"])
+    result = runner.invoke(main, ["create", "Blocker 2"])
     blocker2 = result.output.strip()
 
     # Create ticket blocked by both
     result = runner.invoke(main, [
-        "order", "-d", blocker1, "-d", blocker2, "Blocked ticket"
+        "create", "-d", blocker1, "-d", blocker2, "Blocked ticket"
     ])
 
     result = runner.invoke(main, ["blocked"])
@@ -355,15 +355,15 @@ def test_blocked_empty_message(runner, temp_repo_with_tickets):
 def test_blocked_excludes_closed_blockers(runner, temp_repo):
     """Test that blocked doesn't show tickets whose deps are closed."""
     # Create blocker ticket
-    result = runner.invoke(main, ["order", "Blocker ticket"])
+    result = runner.invoke(main, ["create", "Blocker ticket"])
     blocker_id = result.output.strip()
 
     # Create blocked ticket
-    result = runner.invoke(main, ["order", "-d", blocker_id, "Blocked ticket"])
+    result = runner.invoke(main, ["create", "-d", blocker_id, "Blocked ticket"])
     blocked_id = result.output.strip()
 
     # Close the blocker
-    runner.invoke(main, ["bag", blocker_id])
+    runner.invoke(main, ["close", blocker_id])
 
     result = runner.invoke(main, ["blocked"])
 
@@ -382,34 +382,34 @@ def test_blocked_fails_without_repo(runner):
 
 
 # ============================================================================
-# Served Command Tests
+# Closed Command Tests
 # ============================================================================
 
-def test_served_shows_closed_tickets(runner, temp_repo_with_tickets):
-    """Test that served shows recently served tickets."""
+def test_closed_shows_closed_tickets(runner, temp_repo_with_tickets):
+    """Test that closed shows recently closed tickets."""
     tickets = temp_repo_with_tickets
 
     # Close some tickets
-    runner.invoke(main, ["bag", tickets[0]])
-    runner.invoke(main, ["bag", tickets[1]])
+    runner.invoke(main, ["close", tickets[0]])
+    runner.invoke(main, ["close", tickets[1]])
 
-    result = runner.invoke(main, ["served"])
+    result = runner.invoke(main, ["closed"])
 
     assert result.exit_code == 0
     assert tickets[0][:8] in result.output or tickets[1][:8] in result.output
 
 
-def test_served_default_count(runner, temp_repo):
-    """Test that served shows default 10 tickets."""
+def test_closed_default_count(runner, temp_repo):
+    """Test that closed shows default 10 tickets."""
     # Create and close 15 tickets
     ticket_ids = []
     for i in range(15):
-        result = runner.invoke(main, ["order", f"Ticket {i}"])
+        result = runner.invoke(main, ["create", f"Ticket {i}"])
         ticket_id = result.output.strip()
         ticket_ids.append(ticket_id)
-        runner.invoke(main, ["bag", ticket_id])
+        runner.invoke(main, ["close", ticket_id])
 
-    result = runner.invoke(main, ["served"])
+    result = runner.invoke(main, ["closed"])
 
     assert result.exit_code == 0
     # Should show up to 10 tickets
@@ -419,15 +419,15 @@ def test_served_default_count(runner, temp_repo):
     assert len(lines) <= 10
 
 
-def test_served_custom_count(runner, temp_repo_with_tickets):
-    """Test served with custom count."""
+def test_closed_custom_count(runner, temp_repo_with_tickets):
+    """Test closed with custom count."""
     tickets = temp_repo_with_tickets
 
     # Close all tickets
     for ticket_id in tickets:
-        runner.invoke(main, ["bag", ticket_id])
+        runner.invoke(main, ["close", ticket_id])
 
-    result = runner.invoke(main, ["served", "-n", "2"])
+    result = runner.invoke(main, ["closed", "-n", "2"])
 
     assert result.exit_code == 0
     # Should show exactly 2 tickets
@@ -436,18 +436,18 @@ def test_served_custom_count(runner, temp_repo_with_tickets):
     assert len(lines) == 2
 
 
-def test_served_most_recent_first(runner, temp_repo):
-    """Test that served shows most recently served orders first."""
+def test_closed_most_recent_first(runner, temp_repo):
+    """Test that closed shows most recently closed first."""
     # Create and close tickets
-    result = runner.invoke(main, ["order", "First closed"])
+    result = runner.invoke(main, ["create", "First closed"])
     first_id = result.output.strip()
-    runner.invoke(main, ["bag", first_id])
+    runner.invoke(main, ["close", first_id])
 
-    result = runner.invoke(main, ["order", "Second closed"])
+    result = runner.invoke(main, ["create", "Second closed"])
     second_id = result.output.strip()
-    runner.invoke(main, ["bag", second_id])
+    runner.invoke(main, ["close", second_id])
 
-    result = runner.invoke(main, ["served"])
+    result = runner.invoke(main, ["closed"])
 
     assert result.exit_code == 0
     # Both should appear, with second (most recent) first
@@ -461,10 +461,10 @@ def test_served_most_recent_first(runner, temp_repo):
     assert second_idx < first_idx
 
 
-def test_served_fails_without_repo(runner):
-    """Test that served fails when not in a repository."""
+def test_closed_fails_without_repo(runner):
+    """Test that closed fails when not in a repository."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["served"])
+        result = runner.invoke(main, ["closed"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
@@ -526,7 +526,7 @@ def test_query_all_flag(runner, temp_repo_with_tickets):
     tickets = temp_repo_with_tickets
 
     # Close one ticket
-    runner.invoke(main, ["bag", tickets[0]])
+    runner.invoke(main, ["close", tickets[0]])
 
     result = runner.invoke(main, ["query", "--all"])
 
@@ -587,10 +587,10 @@ def test_query_fails_without_repo(runner):
 def test_list_ready_blocked_integration(runner, temp_repo):
     """Test integration of list, ready, and blocked commands."""
     # Create a dependency chain
-    result = runner.invoke(main, ["order", "Root task"])
+    result = runner.invoke(main, ["create", "Root task"])
     root_id = result.output.strip()
 
-    result = runner.invoke(main, ["order", "-d", root_id, "Dependent task"])
+    result = runner.invoke(main, ["create", "-d", root_id, "Dependent task"])
     dep_id = result.output.strip()
 
     # ready should show only root
@@ -604,7 +604,7 @@ def test_list_ready_blocked_integration(runner, temp_repo):
     assert "Blocked by:" in result.output
 
     # Close root
-    runner.invoke(main, ["bag", root_id])
+    runner.invoke(main, ["close", root_id])
 
     # Now ready should show dependent (since root is closed)
     result = runner.invoke(main, ["ready"])

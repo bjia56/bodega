@@ -1,4 +1,4 @@
-"""Tests for view commands (peek, adjust, note)."""
+"""Tests for view commands (show, edit, note)."""
 
 import pytest
 from pathlib import Path
@@ -11,14 +11,14 @@ from bodega.models.ticket import Ticket, TicketType, TicketStatus
 
 
 # ============================================================================
-# Peek Command Tests
+# Show Command Tests
 # ============================================================================
 
-def test_peek_displays_ticket(runner, temp_repo_with_ticket):
-    """Test that peek displays ticket details."""
+def test_show_displays_ticket(runner, temp_repo_with_ticket):
+    """Test that show displays ticket details."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["peek", ticket_id])
+    result = runner.invoke(main, ["show", ticket_id])
 
     assert result.exit_code == 0
     assert ticket_id in result.output
@@ -27,22 +27,22 @@ def test_peek_displays_ticket(runner, temp_repo_with_ticket):
     assert "Type:" in result.output
 
 
-def test_peek_with_partial_id(runner, temp_repo_with_ticket):
-    """Test that peek works with partial ID."""
+def test_show_with_partial_id(runner, temp_repo_with_ticket):
+    """Test that show works with partial ID."""
     ticket_id = temp_repo_with_ticket
     partial_id = ticket_id[:5]  # Use first 5 chars
 
-    result = runner.invoke(main, ["peek", partial_id])
+    result = runner.invoke(main, ["show", partial_id])
 
     assert result.exit_code == 0
     assert ticket_id in result.output
 
 
-def test_peek_json_format(runner, temp_repo_with_ticket):
-    """Test that peek --json outputs valid JSON."""
+def test_show_json_format(runner, temp_repo_with_ticket):
+    """Test that show --json outputs valid JSON."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
 
     assert result.exit_code == 0
 
@@ -54,11 +54,11 @@ def test_peek_json_format(runner, temp_repo_with_ticket):
     assert data["priority"] == 2
 
 
-def test_peek_raw_format(runner, temp_repo_with_ticket):
-    """Test that peek --raw outputs raw markdown."""
+def test_show_raw_format(runner, temp_repo_with_ticket):
+    """Test that show --raw outputs raw markdown."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["peek", "--raw", ticket_id])
+    result = runner.invoke(main, ["show", "--raw", ticket_id])
 
     assert result.exit_code == 0
     # Should contain YAML frontmatter
@@ -67,48 +67,48 @@ def test_peek_raw_format(runner, temp_repo_with_ticket):
     assert "type: task" in result.output
 
 
-def test_peek_displays_all_fields(runner, temp_repo_with_ticket):
-    """Test that peek displays all ticket fields."""
+def test_show_displays_all_fields(runner, temp_repo_with_ticket):
+    """Test that show displays all ticket fields."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["peek", ticket_id])
+    result = runner.invoke(main, ["show", ticket_id])
 
     assert result.exit_code == 0
     assert "task" in result.output.lower()
     assert "priority: 2" in result.output.lower()
 
 
-def test_peek_displays_description(runner, temp_repo_with_ticket):
-    """Test that peek displays description section."""
+def test_show_displays_description(runner, temp_repo_with_ticket):
+    """Test that show displays description section."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["peek", ticket_id])
+    result = runner.invoke(main, ["show", ticket_id])
 
     assert result.exit_code == 0
     assert "Description" in result.output
     assert "Test description" in result.output
 
 
-def test_peek_not_found(runner, temp_repo):
-    """Test that peek fails for non-existent ticket."""
-    result = runner.invoke(main, ["peek", "bg-notfound"])
+def test_show_not_found(runner, temp_repo):
+    """Test that show fails for non-existent ticket."""
+    result = runner.invoke(main, ["show", "bg-notfound"])
 
     assert result.exit_code == 1
     assert "Error" in result.output
 
 
-def test_peek_requires_id(runner, temp_repo):
-    """Test that peek requires a ticket ID."""
-    result = runner.invoke(main, ["peek"])
+def test_show_requires_id(runner, temp_repo):
+    """Test that show requires a ticket ID."""
+    result = runner.invoke(main, ["show"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output
 
 
-def test_peek_fails_without_repo(runner):
-    """Test that peek fails when not in a repository."""
+def test_show_fails_without_repo(runner):
+    """Test that show fails when not in a repository."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["peek", "bg-test"])
+        result = runner.invoke(main, ["show", "bg-test"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
@@ -138,7 +138,7 @@ def test_note_appears_in_show(runner, temp_repo_with_ticket):
     assert result.exit_code == 0
 
     # Show ticket
-    result = runner.invoke(main, ["peek", ticket_id])
+    result = runner.invoke(main, ["show", ticket_id])
     assert "Test note content" in result.output
     assert "Notes" in result.output
 
@@ -152,7 +152,7 @@ def test_note_appears_in_json(runner, temp_repo_with_ticket):
     assert result.exit_code == 0
 
     # Get JSON
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
 
     assert any("JSON test note" in note for note in data["notes"])
@@ -166,7 +166,7 @@ def test_note_has_timestamp(runner, temp_repo_with_ticket):
     assert result.exit_code == 0
 
     # Show ticket
-    result = runner.invoke(main, ["peek", ticket_id])
+    result = runner.invoke(main, ["show", ticket_id])
 
     # Should contain a timestamp pattern (YYYY-MM-DD HH:MM)
     assert "Timestamped note" in result.output
@@ -189,7 +189,7 @@ def test_note_multiple_notes(runner, temp_repo_with_ticket):
     assert result.exit_code == 0
 
     # Both should appear
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
 
     assert len(data["notes"]) >= 2
@@ -236,142 +236,142 @@ def test_note_fails_without_repo(runner):
 
 
 # ============================================================================
-# Adjust Command Tests
+# Edit Command Tests
 # ============================================================================
 
-def test_adjust_requires_id(runner, temp_repo):
-    """Test that adjust requires a ticket ID."""
-    result = runner.invoke(main, ["adjust"])
+def test_edit_requires_id(runner, temp_repo):
+    """Test that edit requires a ticket ID."""
+    result = runner.invoke(main, ["edit"])
 
     assert result.exit_code == 2
     assert "Missing argument" in result.output
 
 
-def test_adjust_not_found(runner, temp_repo):
-    """Test that adjust fails for non-existent ticket."""
+def test_edit_not_found(runner, temp_repo):
+    """Test that edit fails for non-existent ticket."""
     # Set a mock editor that won't actually run
-    result = runner.invoke(main, ["adjust", "bg-notfound"])
+    result = runner.invoke(main, ["edit", "bg-notfound"])
 
     assert result.exit_code == 1
     assert "Error" in result.output
 
 
-def test_adjust_fails_without_repo(runner):
-    """Test that adjust fails when not in a repository."""
+def test_edit_fails_without_repo(runner):
+    """Test that edit fails when not in a repository."""
     with runner.isolated_filesystem():
-        result = runner.invoke(main, ["adjust", "bg-test"])
+        result = runner.invoke(main, ["edit", "bg-test"])
 
         assert result.exit_code == 1
         assert "Not in a bodega repository" in result.output
 
 
-# Note: Full adjust command testing with actual editor is difficult in unit tests
+# Note: Full edit command testing with actual editor is difficult in unit tests
 # as it requires interactive editor. These tests cover the basic error cases.
 
-def test_adjust_updates_title(runner, temp_repo_with_ticket):
-    """Test that adjust --title updates ticket title."""
+def test_edit_updates_title(runner, temp_repo_with_ticket):
+    """Test that edit --title updates ticket title."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["adjust", ticket_id, "--title", "Updated title"])
+    result = runner.invoke(main, ["edit", ticket_id, "--title", "Updated title"])
     assert result.exit_code == 0
     assert "Updated" in result.output
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["title"] == "Updated title"
 
 
-def test_adjust_updates_type(runner, temp_repo_with_ticket):
-    """Test that adjust --type updates ticket type."""
+def test_edit_updates_type(runner, temp_repo_with_ticket):
+    """Test that edit --type updates ticket type."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["adjust", ticket_id, "--type", "bug"])
+    result = runner.invoke(main, ["edit", ticket_id, "--type", "bug"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["type"] == "bug"
 
 
-def test_adjust_updates_priority(runner, temp_repo_with_ticket):
-    """Test that adjust --priority updates ticket priority."""
+def test_edit_updates_priority(runner, temp_repo_with_ticket):
+    """Test that edit --priority updates ticket priority."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["adjust", ticket_id, "--priority", "1"])
+    result = runner.invoke(main, ["edit", ticket_id, "--priority", "1"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["priority"] == 1
 
 
-def test_adjust_updates_assignee(runner, temp_repo_with_ticket):
-    """Test that adjust --assignee updates ticket assignee."""
+def test_edit_updates_assignee(runner, temp_repo_with_ticket):
+    """Test that edit --assignee updates ticket assignee."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["adjust", ticket_id, "--assignee", "John Doe"])
+    result = runner.invoke(main, ["edit", ticket_id, "--assignee", "John Doe"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["assignee"] == "John Doe"
 
 
-def test_adjust_adds_tags(runner, temp_repo_with_ticket):
-    """Test that adjust --tag adds tags to ticket."""
+def test_edit_adds_tags(runner, temp_repo_with_ticket):
+    """Test that edit --tag adds tags to ticket."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["adjust", ticket_id, "--tag", "urgent", "--tag", "backend"])
+    result = runner.invoke(main, ["edit", ticket_id, "--tag", "urgent", "--tag", "backend"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert "urgent" in data["tags"]
     assert "backend" in data["tags"]
 
 
-def test_adjust_removes_tags(runner, temp_repo_with_ticket):
-    """Test that adjust --remove-tag removes tags from ticket."""
+def test_edit_removes_tags(runner, temp_repo_with_ticket):
+    """Test that edit --remove-tag removes tags from ticket."""
     ticket_id = temp_repo_with_ticket
 
     # First add some tags
-    runner.invoke(main, ["adjust", ticket_id, "--tag", "urgent", "--tag", "backend"])
+    runner.invoke(main, ["edit", ticket_id, "--tag", "urgent", "--tag", "backend"])
 
     # Then remove one
-    result = runner.invoke(main, ["adjust", ticket_id, "--remove-tag", "urgent"])
+    result = runner.invoke(main, ["edit", ticket_id, "--remove-tag", "urgent"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert "urgent" not in data["tags"]
     assert "backend" in data["tags"]
 
 
-def test_adjust_updates_description(runner, temp_repo_with_ticket):
-    """Test that adjust --description updates ticket description."""
+def test_edit_updates_description(runner, temp_repo_with_ticket):
+    """Test that edit --description updates ticket description."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["adjust", ticket_id, "--description", "New description text"])
+    result = runner.invoke(main, ["edit", ticket_id, "--description", "New description text"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["description"] == "New description text"
 
 
-def test_adjust_multiple_fields(runner, temp_repo_with_ticket):
-    """Test that adjust can update multiple fields at once."""
+def test_edit_multiple_fields(runner, temp_repo_with_ticket):
+    """Test that edit can update multiple fields at once."""
     ticket_id = temp_repo_with_ticket
 
     result = runner.invoke(main, [
-        "adjust", ticket_id,
+        "edit", ticket_id,
         "--title", "Multi-update",
         "--type", "feature",
         "--priority", "0",
@@ -380,7 +380,7 @@ def test_adjust_multiple_fields(runner, temp_repo_with_ticket):
     assert result.exit_code == 0
 
     # Verify all changes
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["title"] == "Multi-update"
     assert data["type"] == "feature"
@@ -388,30 +388,30 @@ def test_adjust_multiple_fields(runner, temp_repo_with_ticket):
     assert "critical" in data["tags"]
 
 
-def test_adjust_with_partial_id(runner, temp_repo_with_ticket):
-    """Test that adjust works with partial ID."""
+def test_edit_with_partial_id(runner, temp_repo_with_ticket):
+    """Test that edit works with partial ID."""
     ticket_id = temp_repo_with_ticket
     partial_id = ticket_id[:5]
 
-    result = runner.invoke(main, ["adjust", partial_id, "--title", "Partial ID test"])
+    result = runner.invoke(main, ["edit", partial_id, "--title", "Partial ID test"])
     assert result.exit_code == 0
 
     # Verify the change
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["title"] == "Partial ID test"
 
 
-def test_adjust_duplicate_tag_not_added(runner, temp_repo_with_ticket):
+def test_edit_duplicate_tag_not_added(runner, temp_repo_with_ticket):
     """Test that adding a duplicate tag doesn't create duplicates."""
     ticket_id = temp_repo_with_ticket
 
     # Add tag twice
-    runner.invoke(main, ["adjust", ticket_id, "--tag", "urgent"])
-    runner.invoke(main, ["adjust", ticket_id, "--tag", "urgent"])
+    runner.invoke(main, ["edit", ticket_id, "--tag", "urgent"])
+    runner.invoke(main, ["edit", ticket_id, "--tag", "urgent"])
 
     # Verify only one occurrence
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
     data = json.loads(result.output)
     assert data["tags"].count("urgent") == 1
 
@@ -420,10 +420,10 @@ def test_adjust_duplicate_tag_not_added(runner, temp_repo_with_ticket):
 # Integration Tests
 # ============================================================================
 
-def test_peek_note_integration(runner, temp_repo):
-    """Test full flow: order, note, peek."""
+def test_show_note_integration(runner, temp_repo):
+    """Test full flow: create, note, show."""
     # Create ticket
-    result = runner.invoke(main, ["order", "Integration test ticket"])
+    result = runner.invoke(main, ["create", "Integration test ticket"])
     ticket_id = result.output.strip()
 
     # Add note
@@ -431,7 +431,7 @@ def test_peek_note_integration(runner, temp_repo):
     assert result.exit_code == 0
 
     # Show and verify
-    result = runner.invoke(main, ["peek", ticket_id])
+    result = runner.invoke(main, ["show", ticket_id])
     assert "Integration test ticket" in result.output
     assert "Integration note" in result.output
 
@@ -443,7 +443,7 @@ def test_json_output_serializable(runner, temp_repo_with_ticket):
     # Add a note to test note serialization
     runner.invoke(main, ["note", ticket_id, "Serialization test"])
 
-    result = runner.invoke(main, ["peek", "--json", ticket_id])
+    result = runner.invoke(main, ["show", "--json", ticket_id])
 
     # Should be valid JSON
     data = json.loads(result.output)
@@ -458,7 +458,7 @@ def test_raw_output_is_valid_markdown(runner, temp_repo_with_ticket):
     """Test that raw output is valid markdown with frontmatter."""
     ticket_id = temp_repo_with_ticket
 
-    result = runner.invoke(main, ["peek", "--raw", ticket_id])
+    result = runner.invoke(main, ["show", "--raw", ticket_id])
 
     lines = result.output.split("\n")
 

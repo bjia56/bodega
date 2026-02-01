@@ -15,22 +15,19 @@ from bodega.output import format_ticket_detail, ticket_to_dict
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.option("--raw", is_flag=True, help="Output raw markdown file")
 @pass_context
-def peek(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
+def show(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
     """
-    Take a look at order details
-
-    Displays full ticket information including title, description, status,
-    priority, tags, dependencies, and related tickets.
+    Display ticket details
 
     Examples:
 
-        bodega peek bg-a1b2c3
+        bodega show bg-a1b2c3
 
-        bodega peek bg-a1b  # Partial ID
+        bodega show a1b  # Partial ID
 
-        bodega peek --json bg-a1b2c3
+        bodega show --json bg-a1b2c3
 
-        bodega peek --raw bg-a1b2c3
+        bodega show --raw bg-a1b2c3
     """
     storage = require_repo(ctx)
 
@@ -74,7 +71,7 @@ def peek(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
 @click.option("--remove-tag", multiple=True, help="Remove tag (can be repeated)")
 @click.option("--description", default=None, help="Update description text")
 @pass_context
-def adjust(
+def edit(
     ctx: Context,
     ticket_id: str,
     title: str | None,
@@ -86,24 +83,24 @@ def adjust(
     description: str | None,
 ):
     """
-    Adjust the order
+    Edit ticket properties or open in $EDITOR
 
     If no options are provided, opens the ticket in $EDITOR for interactive editing.
     If any options are provided, updates those fields directly without opening an editor.
 
     Examples:
 
-        bodega adjust bg-a1b2c3  # Opens in editor
+        bodega edit bg-a1b2c3  # Opens in editor
 
-        bodega adjust bg-a1b2c3 --title "New title"
+        bodega edit bg-a1b2c3 --title "New title"
 
-        bodega adjust bg-a1b2c3 -t bug -p 1
+        bodega edit bg-a1b2c3 -t bug -p 1
 
-        bodega adjust bg-a1b2c3 --tag urgent --tag api
+        bodega edit bg-a1b2c3 --tag urgent --tag api
 
-        bodega adjust bg-a1b2c3 --remove-tag old-tag
+        bodega edit bg-a1b2c3 --remove-tag old-tag
 
-        bodega adjust bg-a1b2c3 -a "John Doe" --description "Updated description"
+        bodega edit bg-a1b2c3 -a "John Doe" --description "Updated description"
     """
     storage = require_repo(ctx)
 
@@ -204,7 +201,7 @@ def adjust(
 @pass_context
 def note(ctx: Context, ticket_id: str, text: str):
     """
-    Add a note to the order
+    Add a timestamped note to a ticket
 
     Notes are appended to the ## Notes section with a timestamp.
 

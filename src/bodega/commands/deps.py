@@ -9,21 +9,16 @@ from bodega.graph import DependencyGraph
 @click.argument("ticket_id", metavar="ID")
 @click.argument("blocker_id", metavar="BLOCKER")
 @pass_context
-def needs(ctx: Context, ticket_id: str, blocker_id: str):
+def dep(ctx: Context, ticket_id: str, blocker_id: str):
     """
-    Order needs another item first
+    Add a dependency (BLOCKER blocks ID)
 
-    Creates a blocking dependency. ID cannot be completed until
-    BLOCKER is closed.
-
-    After this, ID will show BLOCKER in its dependencies list.
+    After this, ID cannot be completed until BLOCKER is closed.
 
     Examples:
 
-        bodega needs bg-a1b2c3 bg-d4e5f6
+        bodega dep bg-a1b2c3 bg-d4e5f6
         # bg-d4e5f6 now blocks bg-a1b2c3
-
-        bodega needs bg-a1b bg-d4e  # Partial IDs
     """
     storage = require_repo(ctx)
 
@@ -66,18 +61,13 @@ def needs(ctx: Context, ticket_id: str, blocker_id: str):
 @click.argument("ticket_id", metavar="ID")
 @click.argument("blocker_id", metavar="BLOCKER")
 @pass_context
-def free(ctx: Context, ticket_id: str, blocker_id: str):
+def undep(ctx: Context, ticket_id: str, blocker_id: str):
     """
-    Remove the dependency - order is free to proceed
-
-    Removes a blocking dependency between two tickets.
+    Remove a dependency
 
     Examples:
 
-        bodega free bg-a1b2c3 bg-d4e5f6
-        # bg-d4e5f6 no longer blocks bg-a1b2c3
-
-        bodega free bg-a1b bg-d4e  # Partial IDs
+        bodega undep bg-a1b2c3 bg-d4e5f6
     """
     storage = require_repo(ctx)
 
@@ -106,21 +96,15 @@ def free(ctx: Context, ticket_id: str, blocker_id: str):
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
-def related(ctx: Context, id1: str, id2: str):
+def link(ctx: Context, id1: str, id2: str):
     """
-    Link related orders together
+    Create a symmetric link between tickets
 
-    Creates a bidirectional link between two related tickets.
-    Both tickets will reference each other in their related list.
-
-    Unlike dependencies, related links are non-blocking relationships.
+    Links are bidirectional - both tickets will reference each other.
 
     Examples:
 
-        bodega related bg-a1b2c3 bg-d4e5f6
-        # Both tickets now show each other as related
-
-        bodega related bg-a1b bg-d4e  # Partial IDs
+        bodega link bg-a1b2c3 bg-d4e5f6
     """
     storage = require_repo(ctx)
 
@@ -160,18 +144,13 @@ def related(ctx: Context, id1: str, id2: str):
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
-def split(ctx: Context, id1: str, id2: str):
+def unlink(ctx: Context, id1: str, id2: str):
     """
-    Split related orders
-
-    Removes the bidirectional link between two tickets.
+    Remove a link between tickets
 
     Examples:
 
-        bodega split bg-a1b2c3 bg-d4e5f6
-        # Tickets are no longer related
-
-        bodega split bg-a1b bg-d4e  # Partial IDs
+        bodega unlink bg-a1b2c3 bg-d4e5f6
     """
     storage = require_repo(ctx)
 

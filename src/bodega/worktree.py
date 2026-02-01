@@ -169,7 +169,7 @@ def ensure_worktree(bodega_dir: Path, branch_name: str = "bodega") -> Path:
     if not git_file.exists():
         raise StorageError(
             f"Worktree directory exists but is not a valid git worktree: {worktree_path}\n"
-            f"Remove the directory and run 'bodega open --force' to reinitialize"
+            f"Remove the directory and run 'bodega init --force' to reinitialize"
         )
 
     # Ensure .bodega directory exists in worktree

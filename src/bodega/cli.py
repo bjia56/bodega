@@ -39,7 +39,7 @@ def main(ctx: Context, debug: bool):
         if ctx.config.bodega_dir:
             ctx.storage = TicketStorage(ctx.config)
     except StorageError:
-        # Not in a bodega repo - only open command will work
+        # Not in a bodega repo - only init command will work
         ctx.config = BodegaConfig()
         ctx.storage = None
 
@@ -50,52 +50,52 @@ def main(ctx: Context, debug: bool):
 
 # Import command modules
 from bodega.commands import (
-    open_cmd,
-    order,
+    init,
+    create,
     lifecycle,
     view,
     list_cmd,
     deps,
-    transfer,
-    reconcile,
+    migrate,
+    sync,
 )
 
 # Register individual commands
-main.add_command(open_cmd.open_cmd)
-main.add_command(order.order)
+main.add_command(init.init)
+main.add_command(create.create)
 
 # Register lifecycle commands
-main.add_command(lifecycle.prep)
-main.add_command(lifecycle.bag)
-main.add_command(lifecycle.remake)
+main.add_command(lifecycle.start)
+main.add_command(lifecycle.close)
+main.add_command(lifecycle.reopen)
 main.add_command(lifecycle.status)
 
 # Register view commands
-main.add_command(view.peek)
-main.add_command(view.adjust)
+main.add_command(view.show)
+main.add_command(view.edit)
 main.add_command(view.note)
 
 # Register list commands
 main.add_command(list_cmd.list_tickets)
 main.add_command(list_cmd.ready)
 main.add_command(list_cmd.blocked)
-main.add_command(list_cmd.served)
+main.add_command(list_cmd.closed)
 main.add_command(list_cmd.query)
 
 # Register dependency commands
-main.add_command(deps.needs)
-main.add_command(deps.free)
-main.add_command(deps.related)
-main.add_command(deps.split)
+main.add_command(deps.dep)
+main.add_command(deps.undep)
+main.add_command(deps.link)
+main.add_command(deps.unlink)
 main.add_command(deps.tree)
 main.add_command(deps.cycle)
 
-# Register transfer command
-main.add_command(transfer.transfer)
+# Register migrate command
+main.add_command(migrate.migrate_beads)
 
-# Register reconcile commands
-main.add_command(reconcile.reconcile)
-main.add_command(reconcile.compare)
+# Register sync commands
+main.add_command(sync.sync)
+main.add_command(sync.status)
 
 
 if __name__ == "__main__":
