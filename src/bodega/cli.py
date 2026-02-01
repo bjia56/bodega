@@ -95,7 +95,6 @@ main.add_command(transfer.transfer)
 
 # Register sync commands
 main.add_command(sync.sync)
-main.add_command(sync.status)
 
 
 if __name__ == "__main__":
