@@ -162,7 +162,7 @@ def related(ctx: Context, id1: str, id2: str):
 @pass_context
 def split(ctx: Context, id1: str, id2: str):
     """
-    Split bundled orders
+    Split related orders
 
     Removes the bidirectional link between two tickets.
 

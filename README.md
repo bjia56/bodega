@@ -49,7 +49,7 @@ Commands:
   reconcile  Reconcile tickets between branches
   remake     Remake an order
   served     Show recently served orders
-  split      Split bundled orders
+  split      Split related orders
   status     Get ticket status
   transfer   Transfer tickets from another system
   tree       Display dependency tree

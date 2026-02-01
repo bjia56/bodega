@@ -216,7 +216,7 @@ class Ticket:
 class OrderKind(str, Enum):
     """Types of orders in bodega terminology."""
     BROKEN = "broken"      # bug - broken/damaged goods
-    NEW = "new"            # feature - new item/special order
+    SPECIAL = "special"    # feature - special order
     REGULAR = "regular"    # task - standard order
     BULK = "bulk"          # epic - big/wholesale order
     UPKEEP = "upkeep"      # chore - store maintenance
@@ -246,7 +246,7 @@ class Order:
     labels: list[str] = field(default_factory=list)  # Price stickers/tags
     needs: list[str] = field(default_factory=list)  # Dependencies
     related: list[str] = field(default_factory=list)  # Linked orders
-    bundle: Optional[str] = None  # Parent bundle (parent)
+    tab: Optional[str] = None  # Parent tab (parent)
     reference: Optional[str] = None  # External reference
     created: datetime = field(default_factory=now_utc)
     updated: datetime = field(default_factory=now_utc)
@@ -306,7 +306,7 @@ def ticket_to_order(ticket: Ticket) -> Order:
     - tags -> labels
     - deps -> needs
     - links -> related
-    - parent -> bundle
+    - parent -> tab
     - external_ref -> reference
     - description -> details
     - design -> plan
@@ -316,7 +316,7 @@ def ticket_to_order(ticket: Ticket) -> Order:
     # Map TicketType to OrderKind
     kind_map = {
         TicketType.BUG: OrderKind.BROKEN,
-        TicketType.FEATURE: OrderKind.NEW,
+        TicketType.FEATURE: OrderKind.SPECIAL,
         TicketType.TASK: OrderKind.REGULAR,
         TicketType.EPIC: OrderKind.BULK,
         TicketType.CHORE: OrderKind.UPKEEP,
@@ -339,7 +339,7 @@ def ticket_to_order(ticket: Ticket) -> Order:
         labels=ticket.tags.copy(),
         needs=ticket.deps.copy(),
         related=ticket.links.copy(),
-        bundle=ticket.parent,
+        tab=ticket.parent,
         reference=ticket.external_ref,
         created=ticket.created,
         updated=ticket.updated,
@@ -360,7 +360,7 @@ def order_to_ticket(order: Order) -> Ticket:
     # Map OrderKind to TicketType
     kind_map = {
         OrderKind.BROKEN: TicketType.BUG,
-        OrderKind.NEW: TicketType.FEATURE,
+        OrderKind.SPECIAL: TicketType.FEATURE,
         OrderKind.REGULAR: TicketType.TASK,
         OrderKind.BULK: TicketType.EPIC,
         OrderKind.UPKEEP: TicketType.CHORE,
@@ -383,7 +383,7 @@ def order_to_ticket(order: Order) -> Ticket:
         tags=order.labels.copy(),
         deps=order.needs.copy(),
         links=order.related.copy(),
-        parent=order.bundle,
+        parent=order.tab,
         external_ref=order.reference,
         created=order.created,
         updated=order.updated,
