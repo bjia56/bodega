@@ -1,4 +1,4 @@
-"""Transfer command - Import tickets from other systems."""
+"""Import command - Import tickets from other systems."""
 
 import click
 import json
@@ -10,18 +10,18 @@ from bodega.models import Ticket, TicketType, TicketStatus
 from bodega.utils import generate_id
 
 
-@click.command()
+@click.command("import")
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--from", "from_system", type=click.Choice(["beads"], case_sensitive=False),
-              default="beads", help="Source system to transfer from (default: beads)")
+              default="beads", help="Source system to import from (default: beads)")
 @click.option("--path", "-p", type=click.Path(exists=True),
               help="Path to source directory (default: .beads)")
 @click.option("--dry-run", is_flag=True,
-              help="Show what would be transferred")
+              help="Show what would be imported")
 @click.option("--preserve-ids", is_flag=True,
               help="Keep original IDs instead of generating new ones")
 @pass_context
-def transfer(
+def import_tickets(
     ctx: Context,
     from_system: str,
     path: str | None,
@@ -29,22 +29,22 @@ def transfer(
     preserve_ids: bool,
 ):
     """
-    Transfer tickets from another system
+    Import tickets from another system
 
     Reads from the specified source system and creates bodega tickets.
-    Currently supports transferring from beads.
+    Currently supports importing from beads.
 
     Examples:
 
-        bodega transfer                        # Transfer from .beads
+        bodega import                        # Import from .beads
 
-        bodega transfer --from beads           # Explicit source
+        bodega import --from beads           # Explicit source
 
-        bodega transfer --path /other/.beads   # Custom path
+        bodega import --path /other/.beads   # Custom path
 
-        bodega transfer --dry-run              # Show what would transfer
+        bodega import --dry-run              # Show what would import
 
-        bodega transfer --preserve-ids         # Keep original IDs
+        bodega import --preserve-ids         # Keep original IDs
     """
     storage = require_repo(ctx)
 
@@ -75,10 +75,10 @@ def transfer(
                 click.echo(f"Warning: Invalid JSON on line {line_num}: {e}", err=True)
 
     if not issues:
-        click.echo("No issues found to transfer.")
+        click.echo("No issues found to import.")
         return
 
-    click.echo(f"Found {len(issues)} issues to transfer.")
+    click.echo(f"Found {len(issues)} issues to import.")
 
     # Build ID mapping (old -> new)
     id_map = {}
@@ -106,12 +106,12 @@ def transfer(
 
         except Exception as e:
             old_id = issue.get("id", "unknown")
-            click.echo(f"  Error transferring {old_id}: {e}", err=True)
+            click.echo(f"  Error importing {old_id}: {e}", err=True)
 
     if dry_run:
-        click.echo(f"\nDry run complete. Would transfer {migrated} tickets.")
+        click.echo(f"\nDry run complete. Would import {migrated} tickets.")
     else:
-        click.echo(f"\nTransfer complete. Created {migrated} tickets.")
+        click.echo(f"\nImport complete. Created {migrated} tickets.")
 
 
 def convert_beads_issue(

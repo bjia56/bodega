@@ -56,7 +56,7 @@ from bodega.commands import (
     view,
     list_cmd,
     deps,
-    transfer,
+    import_cmd,
     sync,
 )
 
@@ -90,8 +90,8 @@ main.add_command(deps.unlink)
 main.add_command(deps.tree)
 main.add_command(deps.cycle)
 
-# Register transfer command
-main.add_command(transfer.transfer)
+# Register import command
+main.add_command(import_cmd.import_tickets)
 
 # Register sync commands
 main.add_command(sync.sync)

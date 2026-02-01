@@ -48,7 +48,7 @@ Commands:
   start     Set ticket status to in-progress
   status    Get ticket status
   sync      Synchronize tickets between main and bodega branches
-  transfer  Transfer tickets from another system
+  import    Import tickets from another system
   tree      Display dependency tree
   undep     Remove a dependency
   unlink    Remove a link between tickets

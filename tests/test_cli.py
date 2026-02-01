@@ -303,7 +303,7 @@ def test_command_help_available_for_all(runner):
         "start", "close", "reopen", "status",
         "ready", "blocked", "closed", "query",
         "dep", "undep", "link", "unlink", "tree", "cycle",
-        "transfer", "sync",
+        "import", "sync",
     ]
 
     for cmd in commands:
