@@ -33,7 +33,7 @@ Commands:
   adjust     Adjust the order
   bag        Bag it up - order complete!
   blocked    List tickets that are blocked by dependencies
-  combo      Bundle orders together
+  related    Link related orders together
   compare    Compare ticket branches
   cycle      Detect circular dependencies
   free       Remove the dependency - order is free to proceed

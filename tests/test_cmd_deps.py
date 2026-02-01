@@ -125,17 +125,17 @@ def test_free_nonexistent(runner, temp_repo):
 
 
 # ============================================================================
-# Combo Tests
+# Related Tests
 # ============================================================================
 
-def test_combo(runner, temp_repo):
+def test_related(runner, temp_repo):
     """Test creating a bidirectional link between tickets."""
     result = runner.invoke(main, ["order", "Task A"])
     id_a = result.output.strip()
     result = runner.invoke(main, ["order", "Task B"])
     id_b = result.output.strip()
 
-    result = runner.invoke(main, ["combo", id_a, id_b])
+    result = runner.invoke(main, ["related", id_a, id_b])
     assert result.exit_code == 0
     assert "Linked" in result.output
 
@@ -149,17 +149,17 @@ def test_combo(runner, temp_repo):
     assert id_a in data["links"]
 
 
-def test_combo_self(runner, temp_repo):
+def test_related_self(runner, temp_repo):
     """Test that a ticket cannot link to itself."""
     result = runner.invoke(main, ["order", "Task"])
     ticket_id = result.output.strip()
 
-    result = runner.invoke(main, ["combo", ticket_id, ticket_id])
+    result = runner.invoke(main, ["related", ticket_id, ticket_id])
     assert result.exit_code == 1
     assert "cannot link ticket to itself" in result.output.lower()
 
 
-def test_combo_already_exists(runner, temp_repo):
+def test_related_already_exists(runner, temp_repo):
     """Test linking already linked tickets."""
     result = runner.invoke(main, ["order", "Task A"])
     id_a = result.output.strip()
@@ -167,11 +167,11 @@ def test_combo_already_exists(runner, temp_repo):
     id_b = result.output.strip()
 
     # Link tickets
-    result = runner.invoke(main, ["combo", id_a, id_b])
+    result = runner.invoke(main, ["related", id_a, id_b])
     assert result.exit_code == 0
 
     # Try to link again
-    result = runner.invoke(main, ["combo", id_a, id_b])
+    result = runner.invoke(main, ["related", id_a, id_b])
     assert result.exit_code == 0
     assert "already linked" in result.output
 
@@ -184,7 +184,7 @@ def test_split(runner, temp_repo):
     id_b = result.output.strip()
 
     # Link tickets
-    runner.invoke(main, ["combo", id_a, id_b])
+    runner.invoke(main, ["related", id_a, id_b])
 
     # Unlink
     result = runner.invoke(main, ["split", id_a, id_b])
@@ -314,7 +314,7 @@ def test_needs_partial_id(runner, temp_repo):
     assert "depends on" in result.output
 
 
-def test_combo_partial_id(runner, temp_repo):
+def test_related_partial_id(runner, temp_repo):
     """Test link command with partial IDs."""
     result = runner.invoke(main, ["order", "Task A"])
     id_a = result.output.strip()
@@ -325,6 +325,6 @@ def test_combo_partial_id(runner, temp_repo):
     partial_a = id_a[:6]
     partial_b = id_b[:6]
 
-    result = runner.invoke(main, ["combo", partial_a, partial_b])
+    result = runner.invoke(main, ["related", partial_a, partial_b])
     assert result.exit_code == 0
     assert "Linked" in result.output

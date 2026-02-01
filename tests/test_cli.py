@@ -301,7 +301,7 @@ def test_command_help_available_for_all(runner):
         "open", "order", "list", "peek", "adjust", "note",
         "prep", "bag", "remake", "status",
         "ready", "blocked", "served", "query",
-        "needs", "free", "combo", "split", "tree", "cycle",
+        "needs", "free", "related", "split", "tree", "cycle",
         "reconcile", "compare", "transfer",
     ]
 

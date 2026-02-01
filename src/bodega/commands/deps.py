@@ -106,21 +106,21 @@ def free(ctx: Context, ticket_id: str, blocker_id: str):
 @click.argument("id1", metavar="ID1")
 @click.argument("id2", metavar="ID2")
 @pass_context
-def combo(ctx: Context, id1: str, id2: str):
+def related(ctx: Context, id1: str, id2: str):
     """
-    Bundle orders together
+    Link related orders together
 
     Creates a bidirectional link between two related tickets.
     Both tickets will reference each other in their related list.
 
-    Unlike dependencies, combos are non-blocking relationships.
+    Unlike dependencies, related links are non-blocking relationships.
 
     Examples:
 
-        bodega combo bg-a1b2c3 bg-d4e5f6
+        bodega related bg-a1b2c3 bg-d4e5f6
         # Both tickets now show each other as related
 
-        bodega combo bg-a1b bg-d4e  # Partial IDs
+        bodega related bg-a1b bg-d4e  # Partial IDs
     """
     storage = require_repo(ctx)
 

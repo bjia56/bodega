@@ -85,7 +85,7 @@ main.add_command(list_cmd.query)
 # Register dependency commands
 main.add_command(deps.needs)
 main.add_command(deps.free)
-main.add_command(deps.combo)
+main.add_command(deps.related)
 main.add_command(deps.split)
 main.add_command(deps.tree)
 main.add_command(deps.cycle)

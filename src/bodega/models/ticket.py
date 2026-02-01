@@ -245,9 +245,9 @@ class Order:
     clerk: Optional[str] = None  # Who's handling it (assignee)
     labels: list[str] = field(default_factory=list)  # Price stickers/tags
     needs: list[str] = field(default_factory=list)  # Dependencies
-    combo: list[str] = field(default_factory=list)  # Linked orders
+    related: list[str] = field(default_factory=list)  # Linked orders
     bundle: Optional[str] = None  # Parent bundle (parent)
-    receipt: Optional[str] = None  # External reference
+    reference: Optional[str] = None  # External reference
     created: datetime = field(default_factory=now_utc)
     updated: datetime = field(default_factory=now_utc)
 
@@ -305,9 +305,9 @@ def ticket_to_order(ticket: Ticket) -> Order:
     - priority -> urgency
     - tags -> labels
     - deps -> needs
-    - links -> combo
+    - links -> related
     - parent -> bundle
-    - external_ref -> receipt
+    - external_ref -> reference
     - description -> details
     - design -> plan
     - acceptance_criteria -> checklist
@@ -338,9 +338,9 @@ def ticket_to_order(ticket: Ticket) -> Order:
         clerk=ticket.assignee,
         labels=ticket.tags.copy(),
         needs=ticket.deps.copy(),
-        combo=ticket.links.copy(),
+        related=ticket.links.copy(),
         bundle=ticket.parent,
-        receipt=ticket.external_ref,
+        reference=ticket.external_ref,
         created=ticket.created,
         updated=ticket.updated,
         details=ticket.description,
@@ -382,9 +382,9 @@ def order_to_ticket(order: Order) -> Ticket:
         assignee=order.clerk,
         tags=order.labels.copy(),
         deps=order.needs.copy(),
-        links=order.combo.copy(),
+        links=order.related.copy(),
         parent=order.bundle,
-        external_ref=order.receipt,
+        external_ref=order.reference,
         created=order.created,
         updated=order.updated,
         description=order.details,
