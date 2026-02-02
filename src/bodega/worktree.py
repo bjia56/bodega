@@ -570,6 +570,7 @@ def push_to_remote(
     auto_committed = False
     pulled_commits = 0
     had_conflicts = False
+    pushed_commits = 0
 
     # Step 1: Commit any uncommitted changes in worktree
     if has_uncommitted_changes(worktree_path, '.bodega'):
@@ -591,6 +592,15 @@ def push_to_remote(
         check=False
     )
     has_remote = bool(result.stdout.strip())
+
+    # Count commits to push BEFORE we sync/push
+    if has_remote:
+        pushed_commits = get_commits_ahead(worktree_path, bodega_branch, f'origin/{bodega_branch}')
+    else:
+        # No remote yet - count all commits
+        result = _run_git(['git', 'rev-list', '--count', 'HEAD'], cwd=worktree_path, check=False)
+        if result.returncode == 0:
+            pushed_commits = int(result.stdout.strip())
 
     if has_remote:
         # Get initial commit count to pull
@@ -653,20 +663,6 @@ def push_to_remote(
 
     if result.returncode != 0:
         raise StorageError(f"Failed to push to remote:\n{result.stderr}")
-
-    # Get number of commits pushed
-    if has_remote:
-        pushed_commits = get_commits_ahead(worktree_path, bodega_branch, f'origin/{bodega_branch}')
-        # After successful push, should be 0, so we use the previous count
-        # Actually, we need to count before push
-        # Let's get from push output or assume success means all local commits were pushed
-        result = _run_git(['git', 'rev-list', '--count', 'HEAD'], cwd=worktree_path, check=False)
-        if result.returncode == 0:
-            total_commits = int(result.stdout.strip())
-            pushed_commits = total_commits - pulled_commits if total_commits >= pulled_commits else 0
-    else:
-        result = _run_git(['git', 'rev-list', '--count', 'HEAD'], cwd=worktree_path, check=False)
-        pushed_commits = int(result.stdout.strip()) if result.returncode == 0 else 0
 
     return PushResult(
         auto_committed=auto_committed,
