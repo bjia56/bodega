@@ -121,7 +121,7 @@ class Ticket:
     id: str
     title: str
     tags: list[str] = field(default_factory=list)
-    
+
     def __post_init__(self):
         if not self.title.strip():
             raise ValueError("Title must not be empty")
@@ -226,3 +226,7 @@ tests/
 - Priority range: 0 (critical) to 4 (backlog)
 - Ticket statuses: `open`, `in-progress`, `closed`
 - Ticket types: `bug`, `feature`, `task`, `epic`, `chore`
+
+## Issue tracking
+
+This project uses `bodega` for issue tracking. Run `bodega howto` to get started.
