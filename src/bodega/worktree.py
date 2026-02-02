@@ -79,11 +79,11 @@ def init_worktree(repo_root: Path, bodega_dir: Path, branch_name: str = "bodega"
     Initialize git worktree for ticket storage.
 
     Creates:
-    - bodega branch from current HEAD
+    - bodega branch from current HEAD (if branch doesn't exist)
     - Worktree at .bodega/worktree/
     - .bodega/.gitignore with worktree/ entry
     - .bodega/worktree/.bodega/ directory for tickets
-    - Initial commit on bodega branch
+    - Initial commit on bodega branch (if needed)
 
     Args:
         repo_root: Path to git repository root
@@ -102,34 +102,46 @@ def init_worktree(repo_root: Path, bodega_dir: Path, branch_name: str = "bodega"
     gitignore_path = bodega_dir / ".gitignore"
     gitignore_path.write_text("worktree/\n")
 
-    # Check if branch already exists
+    # Check if branch already exists locally
     result = _run_git(['git', 'rev-parse', '--verify', branch_name], cwd=repo_root, check=False)
-    branch_exists = result.returncode == 0
+    branch_exists_locally = result.returncode == 0
 
-    if branch_exists:
-        # Branch exists, just create worktree
+    # Check if branch exists on remote
+    result = _run_git(['git', 'rev-parse', '--verify', f'origin/{branch_name}'], cwd=repo_root, check=False)
+    branch_exists_remotely = result.returncode == 0
+
+    if branch_exists_locally:
+        # Branch exists locally, just create worktree
         _run_git(['git', 'worktree', 'add', str(worktree_path), branch_name], cwd=repo_root)
+    elif branch_exists_remotely:
+        # Branch exists on remote but not locally - create local tracking branch with worktree
+        _run_git(['git', 'worktree', 'add', '-b', branch_name, str(worktree_path), f'origin/{branch_name}'], cwd=repo_root)
     else:
-        # Create new branch and worktree
+        # Create new branch and worktree from current HEAD
         _run_git(['git', 'worktree', 'add', '-b', branch_name, str(worktree_path), 'HEAD'], cwd=repo_root)
 
     # Create .bodega directory in worktree
     worktree_bodega_dir = worktree_path / ".bodega"
     worktree_bodega_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy config.yaml to worktree
+    # Copy config.yaml to worktree if it exists in main and doesn't exist in worktree
     main_config = bodega_dir / "config.yaml"
     worktree_config = worktree_bodega_dir / "config.yaml"
-    if main_config.exists():
+    if main_config.exists() and not worktree_config.exists():
         worktree_config.write_text(main_config.read_text())
 
-    # Initial commit on bodega branch
-    _run_git(['git', 'add', '.bodega/'], cwd=worktree_path)
-    _run_git(
-        ['git', 'commit', '-m', 'Initialize bodega ticket tracking'],
-        cwd=worktree_path,
-        check=False  # May fail if nothing to commit
-    )
+    # Check if there are any commits on the branch
+    result = _run_git(['git', 'rev-list', '-n', '1', 'HEAD'], cwd=worktree_path, check=False)
+    has_commits = result.returncode == 0 and result.stdout.strip()
+
+    # Only create initial commit if branch is new (no commits yet) and we have something to commit
+    if not has_commits or not branch_exists_locally:
+        _run_git(['git', 'add', '.bodega/'], cwd=worktree_path)
+        _run_git(
+            ['git', 'commit', '-m', 'Initialize bodega ticket tracking'],
+            cwd=worktree_path,
+            check=False  # May fail if nothing to commit or already committed
+        )
 
     return worktree_bodega_dir
 

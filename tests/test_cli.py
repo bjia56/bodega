@@ -337,11 +337,11 @@ def test_init_fails_if_exists(runner):
         assert "already exists" in result.output
 
 
-def test_init_force(runner):
-    """Test that init --force reinitializes existing repo."""
+def test_init_reset(runner):
+    """Test that init --reset reinitializes existing repo."""
     with runner.isolated_filesystem():
         Path(".bodega").mkdir()
-        result = runner.invoke(main, ["init", "--force"])
+        result = runner.invoke(main, ["init", "--reset"])
 
         assert result.exit_code == 0
         assert Path(".bodega/config.yaml").is_file()
@@ -366,6 +366,127 @@ def test_init_with_relative_path(runner):
         assert result.exit_code == 0
         assert Path("myproject/.bodega").is_dir()
         assert Path("myproject/.bodega/config.yaml").is_file()
+
+
+def test_init_adopts_cloned_repo_direct_mode(runner):
+    """Test that init adopts a cloned repository in direct mode (no worktree)."""
+    with runner.isolated_filesystem():
+        # Simulate a cloned repository with .bodega and config (direct mode)
+        import subprocess
+        subprocess.run(["git", "init"], check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], check=True, capture_output=True)
+
+        # Create .bodega with config (simulating cloned state)
+        Path(".bodega").mkdir()
+        config_content = """# Bodega configuration
+defaults:
+  type: task
+  priority: 2
+
+git:
+  branch: ""
+"""
+        Path(".bodega/config.yaml").write_text(config_content)
+
+        # Run init without --reset (should adopt existing config)
+        result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 0
+        assert "Found existing bodega repository" in result.output
+        assert "Tickets are stored in .bodega/ on current branch" in result.output
+        assert "Repository ready to use" in result.output
+        # Should NOT say "Initialized" since it's adopting
+        assert "Initialized bodega repository" not in result.output
+
+
+def test_init_adopts_cloned_repo_worktree_mode(runner):
+    """Test that init adopts a cloned repository with worktree mode."""
+    with runner.isolated_filesystem():
+        # Set up git repository
+        import subprocess
+        subprocess.run(["git", "init"], check=True, capture_output=True)
+        subprocess.run(["git", "checkout", "-b", "main"], check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], check=True, capture_output=True)
+
+        # Create initial commit (required for worktree)
+        Path("README.md").write_text("# Test")
+        subprocess.run(["git", "add", "README.md"], check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "Initial commit"], check=True, capture_output=True)
+
+        # Create bodega branch with tickets (simulating remote state)
+        subprocess.run(["git", "checkout", "-b", "bodega"], check=True, capture_output=True)
+        Path(".bodega").mkdir()
+        Path(".bodega/config.yaml").write_text("""# Bodega configuration
+git:
+  branch: bodega
+""")
+        subprocess.run(["git", "add", ".bodega"], check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "Add bodega config"], check=True, capture_output=True)
+
+        # Switch back to main branch
+        subprocess.run(["git", "checkout", "main"], check=True, capture_output=True)
+
+        # Create .bodega with config on main (simulating cloned state where .bodega is on main but worktree doesn't exist)
+        Path(".bodega").mkdir()
+        Path(".bodega/config.yaml").write_text("""# Bodega configuration
+git:
+  branch: bodega
+""")
+
+        # Run init (should set up worktree from existing branch)
+        result = runner.invoke(main, ["init"])
+
+        assert result.exit_code == 0
+        assert "Found existing bodega repository" in result.output
+        assert "Setting up worktree for branch 'bodega'" in result.output
+        assert "Created git worktree on branch 'bodega'" in result.output
+        assert Path(".bodega/worktree").is_dir()
+
+
+def test_init_with_existing_config_without_reset_fails_only_dir(runner):
+    """Test that init without config.yaml still requires --reset."""
+    with runner.isolated_filesystem():
+        # Create only .bodega directory without config.yaml
+        Path(".bodega").mkdir()
+
+        result = runner.invoke(main, ["init"])
+
+        # Should fail because .bodega exists but no config
+        assert result.exit_code == 1
+        assert "already exists" in result.output
+
+
+def test_init_reset_overwrites_existing_config(runner):
+    """Test that init --reset overwrites existing configuration."""
+    with runner.isolated_filesystem():
+        # Create existing .bodega with custom config
+        Path(".bodega").mkdir()
+        Path(".bodega/config.yaml").write_text("""# Custom config
+defaults:
+  priority: 0
+id_prefix: custom
+""")
+
+        # Read original config to confirm it has custom values
+        original_config = Path(".bodega/config.yaml").read_text()
+        assert "id_prefix: custom" in original_config
+        assert "priority: 0" in original_config
+
+        # Run init with --reset
+        result = runner.invoke(main, ["init", "--reset"])
+
+        assert result.exit_code == 0
+        assert "Initialized bodega repository" in result.output
+
+        # Config should be overwritten - custom values should be gone
+        config_content = Path(".bodega/config.yaml").read_text()
+        assert "id_prefix: custom" not in config_content
+        assert "priority: 0" not in config_content
+        # Should have default values (priority: 2, branch: '')
+        assert "priority: 2" in config_content
+        assert "branch: ''" in config_content or 'branch: ""' in config_content
 
 
 def test_init_creates_parents(runner):

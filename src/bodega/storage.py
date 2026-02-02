@@ -69,8 +69,7 @@ class TicketStorage:
         # Determine storage mode based on git_branch config
         if self.config.git_branch:
             # Worktree mode - use separate branch for ticket storage
-            from bodega.worktree import ensure_worktree
-            worktree_bodega_dir = ensure_worktree(self.config.bodega_dir, self.config.git_branch)
+            worktree_bodega_dir = self.config.bodega_dir / "worktree" / ".bodega"
             self.tickets_dir = worktree_bodega_dir
             self.worktree_path = worktree_bodega_dir.parent  # .bodega/worktree/
             self.use_worktree = True

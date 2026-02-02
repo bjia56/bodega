@@ -120,7 +120,7 @@ def test_init_repository_already_exists(tmp_path):
 
 
 def test_init_repository_force(tmp_path):
-    """Test that force=True allows reinitializing."""
+    """Test that force=True allows reinitializing (used by --reset flag)."""
     init_repository(tmp_path)
     bodega_dir = init_repository(tmp_path, force=True)
 
