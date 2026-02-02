@@ -30,28 +30,28 @@ Options:
   --debug     Enable debug output
 
 Commands:
-  blocked   List tickets that are blocked by dependencies
-  close     Set ticket status to closed
-  closed    List recently closed tickets
-  create    Create a new ticket
-  cycle     Detect circular dependencies
-  dep       Add a dependency (BLOCKER blocks ID)
-  edit      Edit ticket properties or open in $EDITOR
-  init      Initialize a new bodega repository
-  link      Create a symmetric link between tickets
-  list      List tickets with optional filters
-  note      Add a timestamped note to a ticket
-  query     Output tickets as JSON for scripting
-  ready     List tickets that are ready to work on
-  reopen    Set ticket status back to open
-  show      Display ticket details
-  start     Set ticket status to in-progress
-  status    Get ticket status
-  sync      Synchronize tickets between main and bodega branches
-  import    Import tickets from another system
-  tree      Display dependency tree
-  undep     Remove a dependency
-  unlink    Remove a link between tickets
+  blocked  List tickets that are blocked by dependencies
+  close    Set ticket status to closed
+  closed   List recently closed tickets
+  create   Create a new ticket
+  cycle    Detect circular dependencies
+  dep      Add a dependency (BLOCKER blocks ID)
+  edit     Edit ticket properties or open in $EDITOR
+  import   Import tickets from another system
+  init     Initialize a new bodega repository
+  link     Create a symmetric link between tickets
+  list     List tickets with optional filters
+  note     Add a timestamped note to a ticket
+  query    Output tickets as JSON for scripting
+  ready    List tickets that are ready to work on
+  reopen   Set ticket status back to open
+  show     Display ticket details
+  start    Set ticket status to in-progress
+  status   Get ticket status
+  sync     Synchronize tickets between main and bodega branches
+  tree     Display dependency tree
+  undep    Remove a dependency
+  unlink   Remove a link between tickets
 ```
 
 ## License
