@@ -4,6 +4,7 @@ import pytest
 import subprocess
 from pathlib import Path
 from click.testing import CliRunner
+import yaml
 
 from bodega.config import BodegaConfig
 from bodega.storage import TicketStorage, init_repository
@@ -25,7 +26,11 @@ def runner():
 def temp_repo(runner):
     """Create a temporary repository for testing (without worktree)."""
     with runner.isolated_filesystem():
-        init_repository()
+        bodega_dir = init_repository()
+        bodega_config = bodega_dir / "config.yaml"
+        config = yaml.safe_load(bodega_config.read_text())
+        config["id_prefix"] = "bg"
+        bodega_config.write_text(yaml.dump(config))
         yield
 
 
@@ -85,6 +90,10 @@ def tmp_bodega(tmp_path):
     Yields the path to the .bodega directory.
     """
     bodega_dir = init_repository(tmp_path)
+    bodega_config = bodega_dir / "config.yaml"
+    config = yaml.safe_load(bodega_config.read_text())
+    config["id_prefix"] = "bg"
+    bodega_config.write_text(yaml.dump(config))
     yield bodega_dir
 
 
@@ -134,7 +143,11 @@ def sample_ticket():
 def temp_repo_with_ticket(runner):
     """Create a temporary repository with a test ticket."""
     with runner.isolated_filesystem():
-        init_repository()
+        bodega_dir = init_repository()
+        bodega_config = bodega_dir / "config.yaml"
+        config = yaml.safe_load(bodega_config.read_text())
+        config["id_prefix"] = "bg"
+        bodega_config.write_text(yaml.dump(config))
 
         # Create a single ticket
         result = runner.invoke(main, ["create", "Test ticket", "--description", "Test description"])
@@ -156,7 +169,11 @@ def temp_repo_with_tickets(runner):
     Yields list of ticket IDs.
     """
     with runner.isolated_filesystem():
-        init_repository()
+        bodega_dir = init_repository()
+        bodega_config = bodega_dir / "config.yaml"
+        config = yaml.safe_load(bodega_config.read_text())
+        config["id_prefix"] = "bg"
+        bodega_config.write_text(yaml.dump(config))
 
         tickets = []
 

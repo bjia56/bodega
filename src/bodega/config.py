@@ -80,6 +80,9 @@ class BodegaConfig:
     # Paths (computed, not from config file)
     bodega_dir: Optional[Path] = None
 
+    # Internal tracking (not from config file)
+    _id_prefix_was_set: bool = False
+
     @property
     def effective_editor(self) -> str:
         """Get editor command, with fallback chain."""
@@ -90,6 +93,32 @@ class BodegaConfig:
 # Configuration Loading
 # ============================================================================
 
+def _derive_id_prefix(bodega_dir: Optional[Path]) -> str:
+    """
+    Derive an id_prefix from the project folder name.
+
+    Args:
+        bodega_dir: Path to .bodega directory, or None
+
+    Returns:
+        Derived prefix (lowercase, alphanumeric only), or "bg" if cannot derive
+    """
+    if not bodega_dir:
+        return "bg"
+
+    # Get the parent directory name (the project folder)
+    project_name = bodega_dir.parent.name
+
+    # Convert to lowercase and keep only alphanumeric characters
+    prefix = "".join(c for c in project_name.lower() if c.isalnum())
+
+    # If empty or starts with number, fall back to "bg"
+    if not prefix or prefix[0].isdigit():
+        return "bg"
+
+    return prefix
+
+
 def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
     """
     Load configuration with precedence:
@@ -97,6 +126,9 @@ def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
     2. Project config (.bodega/config.yaml)
     3. Global config (~/.bodega/config.yaml)
     4. Built-in defaults (lowest)
+
+    If id_prefix is not explicitly set in any config file, it will be
+    derived from the project folder name.
 
     Args:
         project_dir: Optional path to .bodega directory. If None, will search for it.
@@ -121,6 +153,10 @@ def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
 
     # Apply environment variables (highest precedence)
     _apply_env_vars(config)
+
+    # If id_prefix was not explicitly set, derive it from folder name
+    if not config._id_prefix_was_set:
+        config.id_prefix = _derive_id_prefix(bodega_dir)
 
     return config
 
@@ -148,6 +184,7 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
     # Top-level settings
     if "id_prefix" in data:
         config.id_prefix = data["id_prefix"]
+        config._id_prefix_was_set = True
     if "editor" in data:
         config.editor = data["editor"]
     if "list_format" in data:

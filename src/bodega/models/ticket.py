@@ -2,10 +2,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 from enum import Enum
-import re
 import frontmatter
 
-from bodega.utils import now_utc
+from bodega.utils import now_utc, is_valid_id, id_pattern
 
 
 class TicketType(str, Enum):
@@ -56,8 +55,8 @@ class Ticket:
 
         # Validate id pattern (allow empty for new tickets)
         if self.id:
-            if not re.match(r'^[a-z]+-[a-z0-9\.]+$', self.id):
-                raise ValueError(f"ID must match pattern '^[a-z]+-[a-z0-9\\.]+$', got '{self.id}'")
+            if not is_valid_id(self.id):
+                raise ValueError(f"ID must match pattern '{id_pattern.pattern}', got '{self.id}'")
 
         # Convert string enums to proper enum instances if needed
         if isinstance(self.type, str):

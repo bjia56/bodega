@@ -186,20 +186,21 @@ def test_load_config_finds_bodega_dir(tmp_path, monkeypatch):
     assert config.id_prefix == "found"
 
 
-def test_load_config_empty_yaml(tmp_path, monkeypatch):
+def test_load_config_empty_yaml(tmp_path, monkeypatch, runner):
     """Test loading config with empty YAML file."""
-    global_dir = tmp_path / ".bodega"
-    global_dir.mkdir()
-    global_config = global_dir / "config.yaml"
-    global_config.write_text("")  # Empty file
+    with runner.isolated_filesystem():
+        global_dir = tmp_path / ".bodega"
+        global_dir.mkdir()
+        global_config = global_dir / "config.yaml"
+        global_config.write_text("")  # Empty file
 
-    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
 
-    config = load_config()
+        config = load_config()
 
-    # Should use defaults
-    assert config.default_type == "task"
-    assert config.id_prefix == "bg"
+        # Should use defaults
+        assert config.default_type == "task"
+        assert config.id_prefix == "bg"
 
 
 # ============================================================================
@@ -207,38 +208,40 @@ def test_load_config_empty_yaml(tmp_path, monkeypatch):
 # ============================================================================
 
 
-def test_write_default_config(tmp_path):
+def test_write_default_config(tmp_path, runner):
     """Test writing default config template."""
-    config_path = tmp_path / "test" / "config.yaml"
+    with runner.isolated_filesystem():
+        config_path = tmp_path / "test" / "config.yaml"
 
-    write_default_config(config_path)
+        write_default_config(config_path)
 
-    # File should exist
-    assert config_path.exists()
+        # File should exist
+        assert config_path.exists()
 
-    # Parent directory should be created
-    assert config_path.parent.exists()
+        # Parent directory should be created
+        assert config_path.parent.exists()
 
-    # Content should match template
-    content = config_path.read_text()
-    assert content == DEFAULT_CONFIG_TEMPLATE
+        # Content should match template
+        content = config_path.read_text()
+        assert content == DEFAULT_CONFIG_TEMPLATE
 
-    # Should be valid YAML
-    import yaml
-    data = yaml.safe_load(content)
-    assert "defaults" in data
-    assert data["defaults"]["type"] == "task"
-    assert data["defaults"]["priority"] == 2
+        # Should be valid YAML
+        import yaml
+        data = yaml.safe_load(content)
+        assert "defaults" in data
+        assert data["defaults"]["type"] == "task"
+        assert data["defaults"]["priority"] == 2
 
 
-def test_write_default_config_creates_parent_dirs(tmp_path):
+def test_write_default_config_creates_parent_dirs(tmp_path, runner):
     """Test that write_default_config creates parent directories."""
-    config_path = tmp_path / "deep" / "nested" / "path" / "config.yaml"
+    with runner.isolated_filesystem():
+        config_path = tmp_path / "deep" / "nested" / "path" / "config.yaml"
 
-    write_default_config(config_path)
+        write_default_config(config_path)
 
-    assert config_path.exists()
-    assert config_path.parent.exists()
+        assert config_path.exists()
+        assert config_path.parent.exists()
 
 
 # ============================================================================
@@ -334,3 +337,119 @@ def test_validate_config_all_valid_formats():
         config = BodegaConfig(list_format=fmt)
         errors = validate_config(config)
         assert errors == [], f"Format {fmt} should be valid"
+
+
+# ============================================================================
+# ID Prefix Derivation Tests
+# ============================================================================
+
+
+def test_id_prefix_derived_from_folder_name(tmp_path, monkeypatch, runner):
+    """Test that id_prefix is derived from folder name when not explicitly set."""
+    with runner.isolated_filesystem():
+        # Create .bodega directory in a folder named "myproject"
+        project_dir = tmp_path / "myproject" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should derive "myproject" as the prefix
+        assert config.id_prefix == "myproject"
+
+
+def test_id_prefix_explicit_overrides_derivation(tmp_path, monkeypatch, runner):
+    """Test that explicit id_prefix in config overrides folder name derivation."""
+    with runner.isolated_filesystem():
+        # Create .bodega directory in a folder named "myproject"
+        project_dir = tmp_path / "myproject" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        # Set explicit id_prefix in config
+        config_file = project_dir / "config.yaml"
+        config_file.write_text("id_prefix: bg\n")
+
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should use explicit "bg", not derive "myproject"
+        assert config.id_prefix == "bg"
+
+
+def test_id_prefix_derivation_with_special_chars(tmp_path, monkeypatch, runner):
+    """Test that id_prefix derivation strips special characters."""
+    with runner.isolated_filesystem():
+        # Create .bodega directory in a folder with special characters
+        project_dir = tmp_path / "my-cool_project.v2" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should derive "mycoolprojectv2" (alphanumeric only)
+        assert config.id_prefix == "mycoolprojectv2"
+
+
+def test_id_prefix_derivation_falls_back_to_bg(tmp_path, monkeypatch, runner):
+    """Test that id_prefix falls back to 'bg' when folder name is invalid."""
+    with runner.isolated_filesystem():
+        # Create .bodega directory in a folder starting with number
+        project_dir = tmp_path / "123-project" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should fall back to "bg" since name starts with digit
+        assert config.id_prefix == "bg"
+
+
+def test_id_prefix_derivation_no_bodega_dir(tmp_path, monkeypatch, runner):
+    """Test that id_prefix falls back to 'bg' when no bodega dir found."""
+    with runner.isolated_filesystem():
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config()
+
+        # Should fall back to "bg" when no bodega dir
+        assert config.id_prefix == "bg"
+
+
+def test_id_prefix_global_config_overrides_derivation(tmp_path, monkeypatch, runner):
+    """Test that global config id_prefix overrides folder name derivation."""
+    with runner.isolated_filesystem():
+        # Create global config with explicit id_prefix
+        global_dir = tmp_path / "global" / ".bodega"
+        global_dir.mkdir(parents=True)
+        global_config = global_dir / "config.yaml"
+        global_config.write_text("id_prefix: custom\n")
+
+        # Create project in folder named "myproject"
+        project_dir = tmp_path / "myproject" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
+
+        config = load_config(project_dir)
+
+        # Should use global config "custom", not derive "myproject"
+        assert config.id_prefix == "custom"
+
+
+def test_id_prefix_derivation_mixed_case(tmp_path, monkeypatch, runner):
+    """Test that id_prefix derivation converts to lowercase."""
+    with runner.isolated_filesystem():
+        # Create .bodega directory in a folder with mixed case
+        project_dir = tmp_path / "MyAwesomeProject" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should derive "myawesomeproject" (all lowercase)
+        assert config.id_prefix == "myawesomeproject"
