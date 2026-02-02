@@ -91,6 +91,59 @@ def test_start_fails_without_repo(runner):
         assert "Not in a bodega repository" in result.output
 
 
+def test_start_with_assignee(runner, temp_repo_with_ticket):
+    """Test that start can set assignee."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["start", ticket_id, "-a", "John Doe"])
+
+    assert result.exit_code == 0
+    assert "in-progress" in result.output
+
+    # Verify assignee was set
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    import json
+    data = json.loads(result.output)
+    assert data["assignee"] == "John Doe"
+    assert data["status"] == "in-progress"
+
+
+def test_start_updates_assignee_on_already_in_progress(runner, temp_repo_with_ticket):
+    """Test that start can update assignee even when ticket is already in-progress."""
+    ticket_id = temp_repo_with_ticket
+
+    # Start the ticket first
+    runner.invoke(main, ["start", ticket_id])
+
+    # Start again with assignee
+    result = runner.invoke(main, ["start", ticket_id, "-a", "Jane Smith"])
+
+    assert result.exit_code == 0
+    assert "Updated" in result.output
+
+    # Verify assignee was updated
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    import json
+    data = json.loads(result.output)
+    assert data["assignee"] == "Jane Smith"
+    assert data["status"] == "in-progress"
+
+
+def test_start_with_assignee_long_flag(runner, temp_repo_with_ticket):
+    """Test that start works with --assignee long flag."""
+    ticket_id = temp_repo_with_ticket
+
+    result = runner.invoke(main, ["start", ticket_id, "--assignee", "Alice"])
+
+    assert result.exit_code == 0
+
+    # Verify assignee was set
+    result = runner.invoke(main, ["show", "--json", ticket_id])
+    import json
+    data = json.loads(result.output)
+    assert data["assignee"] == "Alice"
+
+
 # ============================================================================
 # Close Command Tests
 # ============================================================================
