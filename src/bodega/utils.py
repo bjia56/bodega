@@ -34,17 +34,22 @@ def generate_id(prefix: str = DEFAULT_PREFIX) -> str:
     return f"{prefix}-{hex_part}"
 
 
+id_pattern = re.compile(r'^[a-z][a-z0-9]*-[a-z0-9\.]+$')
+
+
 def is_valid_id(id_str: str) -> bool:
     """
     Check if string is a valid ticket ID format.
+
+    Prefix must start with a letter and can contain alphanumeric characters.
 
     Args:
         id_str: The string to validate
 
     Returns:
-        True if the string matches the pattern ^[a-z]+-[a-f0-9]+$
+        True if the string matches the pattern ^[a-z][a-z0-9]*-[a-z0-9\.]+$
     """
-    return bool(re.match(r'^[a-z]+-[a-f0-9]+$', id_str))
+    return bool(id_pattern.match(id_str))
 
 
 def resolve_id(partial: str, all_ids: list[str]) -> str:

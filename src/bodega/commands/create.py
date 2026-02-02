@@ -9,7 +9,6 @@ import frontmatter
 
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.models.ticket import Ticket, TicketType, TicketStatus
-from bodega.utils import get_git_user
 
 
 TEMPLATE = """\
@@ -86,7 +85,7 @@ def create(
     # Use defaults from config
     final_type = ticket_type or config.default_type
     final_priority = priority if priority is not None else config.default_priority
-    final_assignee = assignee or config.default_assignee or get_git_user()
+    final_assignee = assignee or config.default_assignee
 
     if title:
         # Create directly from arguments

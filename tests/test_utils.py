@@ -60,17 +60,22 @@ def test_is_valid_id():
     assert is_valid_id("bg-abc123")
     assert is_valid_id("bg-abcdef")
     assert is_valid_id("bg-000000")
-    assert is_valid_id("feature-abc123")
+    assert is_valid_id("feature-xyz123")
     assert is_valid_id("proj-def456")
+    assert is_valid_id("f-abc123")  # single letter prefix
+    assert is_valid_id("p1-abc123")  # prefix with number after letter
+    assert is_valid_id("proj2-def456")  # prefix with alphanumeric
 
     # Invalid IDs
     assert not is_valid_id("BG-abc123")  # uppercase prefix
     assert not is_valid_id("bg-ABC123")  # uppercase hex
     assert not is_valid_id("bg_abc123")  # underscore
     assert not is_valid_id("abc123")  # no prefix
-    assert not is_valid_id("bg-xyz789")  # invalid hex chars (x, y, z)
     assert not is_valid_id("bg-")  # no hex part
     assert not is_valid_id("")  # empty string
+    assert not is_valid_id("1bg-abc123")  # prefix starts with number
+    assert not is_valid_id("2-abc123")  # prefix is only a number
+    assert not is_valid_id("-abc123")  # no prefix
 
 
 # ============================================================================

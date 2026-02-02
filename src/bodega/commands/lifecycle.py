@@ -5,13 +5,15 @@ import click
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.models.ticket import TicketStatus
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
+from bodega.utils import get_git_user
 
 
 @click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.argument("ticket_id", metavar="ID")
+@click.option("--assignee", "-a", default=None, help="Update assignee name")
 @pass_context
-def start(ctx: Context, ticket_id: str):
+def start(ctx: Context, ticket_id: str, assignee: str | None):
     """
     Set ticket status to in-progress
 
@@ -20,19 +22,37 @@ def start(ctx: Context, ticket_id: str):
         bodega start bg-a1b2c3
 
         bodega start a1b  # Partial ID
+
+        bodega start bg-a1b2c3 -a "John Doe"  # Start and assign
     """
     storage = require_repo(ctx)
 
     try:
         ticket = storage.get(ticket_id)
 
-        if ticket.status == TicketStatus.IN_PROGRESS:
+        already_in_progress = ticket.status == TicketStatus.IN_PROGRESS
+
+        if already_in_progress and assignee is None:
             click.echo(f"{ticket.id} is already in-progress")
             return
 
-        ticket.status = TicketStatus.IN_PROGRESS
+        # Update status if not already in-progress
+        if not already_in_progress:
+            ticket.status = TicketStatus.IN_PROGRESS
+            # Set assignee to git user if not already set and not explicitly provided
+            if assignee is None and not ticket.assignee:
+                ticket.assignee = ctx.config.default_assignee or get_git_user()
+
+        # Update assignee if explicitly provided
+        if assignee is not None:
+            ticket.assignee = assignee if assignee else None
+
         storage.save(ticket)
-        click.echo(f"{ticket.id} → in-progress")
+
+        if already_in_progress:
+            click.echo(f"Updated {ticket.id}")
+        else:
+            click.echo(f"{ticket.id} → in-progress")
 
     except TicketNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
