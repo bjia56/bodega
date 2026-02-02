@@ -61,40 +61,43 @@ def test_effective_editor_with_env(monkeypatch):
 # ============================================================================
 
 
-def test_load_config_no_files(tmp_path, monkeypatch):
+def test_load_config_no_files(tmp_path, monkeypatch, runner):
     """Test loading config when no config files exist."""
-    # Point to non-existent paths
-    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent" / "config.yaml")
+    with runner.isolated_filesystem():
+        # Point to non-existent paths
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent" / "config.yaml")
 
-    config = load_config()
+        config = load_config()
 
-    # Should return defaults
-    assert config.default_type == "task"
-    assert config.default_priority == 2
-    assert config.id_prefix == "bg"
+        # Should return defaults
+        assert config.default_type == "task"
+        assert config.default_priority == 2
+        assert config.id_prefix == "bg"
 
 
-def test_load_global_config(tmp_path, monkeypatch):
+def test_load_global_config(tmp_path, monkeypatch, runner):
     """Test loading global configuration."""
-    # Create global config
-    global_dir = tmp_path / ".bodega"
-    global_dir.mkdir()
-    global_config = global_dir / "config.yaml"
-    global_config.write_text("id_prefix: myproj\n")
+    with runner.isolated_filesystem():
+        # Create global config
+        global_dir = tmp_path / ".bodega"
+        global_dir.mkdir()
+        global_config = global_dir / "config.yaml"
+        global_config.write_text("id_prefix: myproj\n")
 
-    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
 
-    config = load_config()
-    assert config.id_prefix == "myproj"
+        config = load_config()
+        assert config.id_prefix == "myproj"
 
 
-def test_load_global_config_with_defaults(tmp_path, monkeypatch):
+def test_load_global_config_with_defaults(tmp_path, monkeypatch, runner):
     """Test loading global config with defaults section."""
-    # Create global config with defaults
-    global_dir = tmp_path / ".bodega"
-    global_dir.mkdir()
-    global_config = global_dir / "config.yaml"
-    global_config.write_text("""
+    with runner.isolated_filesystem():
+        # Create global config with defaults
+        global_dir = tmp_path / ".bodega"
+        global_dir.mkdir()
+        global_config = global_dir / "config.yaml"
+        global_config.write_text("""
 defaults:
   type: bug
   priority: 4
@@ -105,40 +108,41 @@ list_format: compact
 date_format: "%Y-%m-%d"
 """)
 
-    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
 
-    config = load_config()
-    assert config.default_type == "bug"
-    assert config.default_priority == 4
-    assert config.default_assignee == "alice"
-    assert config.id_prefix == "proj"
-    assert config.editor == "vim"
-    assert config.list_format == "compact"
-    assert config.date_format == "%Y-%m-%d"
+        config = load_config()
+        assert config.default_type == "bug"
+        assert config.default_priority == 4
+        assert config.default_assignee == "alice"
+        assert config.id_prefix == "proj"
+        assert config.editor == "vim"
+        assert config.list_format == "compact"
+        assert config.date_format == "%Y-%m-%d"
 
 
-def test_project_overrides_global(tmp_path, monkeypatch):
+def test_project_overrides_global(tmp_path, monkeypatch, runner):
     """Test that project config overrides global config."""
-    # Setup global config
-    global_dir = tmp_path / "home" / ".bodega"
-    global_dir.mkdir(parents=True)
-    global_config = global_dir / "config.yaml"
-    global_config.write_text("id_prefix: global\nlist_format: compact\n")
+    with runner.isolated_filesystem():
+        # Setup global config
+        global_dir = tmp_path / "home" / ".bodega"
+        global_dir.mkdir(parents=True)
+        global_config = global_dir / "config.yaml"
+        global_config.write_text("id_prefix: global\nlist_format: compact\n")
 
-    # Setup project config
-    project_dir = tmp_path / "project" / ".bodega"
-    project_dir.mkdir(parents=True)
-    project_config = project_dir / "config.yaml"
-    project_config.write_text("id_prefix: project\n")
+        # Setup project config
+        project_dir = tmp_path / "project" / ".bodega"
+        project_dir.mkdir(parents=True)
+        project_config = project_dir / "config.yaml"
+        project_config.write_text("id_prefix: project\n")
 
-    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
 
-    config = load_config(project_dir)
+        config = load_config(project_dir)
 
-    # Project value overrides global
-    assert config.id_prefix == "project"
-    # Global value used when not in project config
-    assert config.list_format == "compact"
+        # Project value overrides global
+        assert config.id_prefix == "project"
+        # Global value used when not in project config
+        assert config.list_format == "compact"
 
 
 def test_env_var_override(tmp_path, monkeypatch):

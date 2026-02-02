@@ -137,7 +137,7 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
         data = yaml.safe_load(f) or {}
 
     # Handle nested 'defaults' section
-    defaults = data.get("defaults", {})
+    defaults = data.get("defaults", {}) or {}
     if "type" in defaults:
         config.default_type = defaults["type"]
     if "priority" in defaults:
