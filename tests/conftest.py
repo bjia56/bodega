@@ -78,6 +78,75 @@ def temp_git_repo(tmp_path, monkeypatch):
     yield repo_path
 
 
+@pytest.fixture
+def temp_git_repo_with_remote(tmp_path, monkeypatch):
+    """
+    Create a temporary git repository with a remote configured.
+
+    Initializes git, sets user config, creates initial commit, and sets up a bare remote.
+    Changes to the repository directory.
+    Yields the path to the repository.
+    """
+    repo_path = tmp_path / "repo"
+    remote_path = tmp_path / "remote"
+
+    repo_path.mkdir()
+    remote_path.mkdir()
+
+    # Initialize bare remote
+    subprocess.run(
+        ["git", "init", "--bare"],
+        cwd=remote_path,
+        check=True,
+        capture_output=True
+    )
+
+    # Change to the repo directory for the test
+    monkeypatch.chdir(repo_path)
+
+    # Initialize git
+    subprocess.run(
+        ["git", "init", "--initial-branch=main"],
+        check=True,
+        capture_output=True
+    )
+
+    # Set git user config
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        check=True,
+        capture_output=True
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        check=True,
+        capture_output=True
+    )
+
+    # Add remote
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(remote_path)],
+        check=True,
+        capture_output=True
+    )
+
+    # Create initial commit
+    subprocess.run(
+        ["git", "commit", "--allow-empty", "-m", "Initial commit"],
+        check=True,
+        capture_output=True
+    )
+
+    # Push to remote
+    subprocess.run(
+        ["git", "push", "-u", "origin", "main"],
+        check=True,
+        capture_output=True
+    )
+
+    yield repo_path
+
+
 # ============================================================================
 # Storage Fixtures
 # ============================================================================
