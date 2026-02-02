@@ -37,6 +37,7 @@ Commands:
   cycle    Detect circular dependencies
   dep      Add a dependency (BLOCKER blocks ID)
   edit     Edit ticket properties or open in $EDITOR
+  howto    Show useful CLI examples for AI agents.
   import   Import tickets from another system
   init     Initialize a new bodega repository
   link     Create a symmetric link between tickets

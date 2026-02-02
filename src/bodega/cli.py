@@ -58,6 +58,7 @@ from bodega.commands import (
     deps,
     import_cmd,
     sync,
+    howto,
 )
 
 # Register individual commands
@@ -95,6 +96,9 @@ main.add_command(import_cmd.import_tickets)
 
 # Register sync commands
 main.add_command(sync.sync)
+
+# Register howto command
+main.add_command(howto.howto)
 
 
 if __name__ == "__main__":
