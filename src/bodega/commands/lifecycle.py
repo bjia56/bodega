@@ -21,7 +21,7 @@ def start(ctx: Context, ticket_id: str, assignee: str | None):
 
         bodega start bg-a1b2c3
 
-        bodega start a1b  # Partial ID
+        bodega start bg-a1b  # Partial ID
 
         bodega start bg-a1b2c3 -a "John Doe"  # Start and assign
     """

@@ -23,7 +23,7 @@ def show(ctx: Context, ticket_id: str, as_json: bool, raw: bool):
 
         bodega show bg-a1b2c3
 
-        bodega show a1b  # Partial ID
+        bodega show bg-a1b  # Partial ID
 
         bodega show --json bg-a1b2c3
 

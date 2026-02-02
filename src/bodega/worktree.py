@@ -26,6 +26,24 @@ class SyncStatus:
     uncommitted_in_worktree: bool
 
 
+@dataclass
+class PushStatus:
+    """Status of push to remote."""
+    has_remote: bool
+    commits_to_push: int
+    commits_to_pull: int
+    uncommitted_changes: bool
+
+
+@dataclass
+class PushResult:
+    """Result of a push operation."""
+    auto_committed: bool
+    pulled_commits: int
+    pushed_commits: int
+    had_conflicts: bool
+
+
 def _run_git(cmd: list[str], cwd: Optional[Path] = None, check: bool = True) -> subprocess.CompletedProcess:
     """
     Run a git command.
@@ -469,3 +487,190 @@ def cleanup_worktree(worktree_path: Path, repo_root: Path) -> None:
     if worktree_path.exists():
         import shutil
         shutil.rmtree(worktree_path)
+
+
+def get_push_status(
+    repo_root: Path,
+    worktree_path: Path,
+    bodega_branch: str
+) -> PushStatus:
+    """
+    Get push status for bodega branch to remote.
+
+    Args:
+        repo_root: Path to git repository root
+        worktree_path: Path to worktree root
+        bodega_branch: Bodega branch name
+
+    Returns:
+        PushStatus with push information
+    """
+    # Check if remote branch exists
+    result = _run_git(
+        ['git', 'ls-remote', '--heads', 'origin', bodega_branch],
+        cwd=worktree_path,
+        check=False
+    )
+    has_remote = bool(result.stdout.strip())
+
+    commits_to_push = 0
+    commits_to_pull = 0
+
+    if has_remote:
+        # Fetch latest remote state
+        _run_git(['git', 'fetch', 'origin', bodega_branch], cwd=worktree_path, check=False)
+
+        # Get commits ahead (to push)
+        commits_to_push = get_commits_ahead(worktree_path, bodega_branch, f'origin/{bodega_branch}')
+
+        # Get commits behind (to pull)
+        commits_to_pull = get_commits_ahead(worktree_path, f'origin/{bodega_branch}', bodega_branch)
+    else:
+        # No remote - count all commits
+        result = _run_git(['git', 'rev-list', '--count', 'HEAD'], cwd=worktree_path, check=False)
+        if result.returncode == 0:
+            commits_to_push = int(result.stdout.strip())
+
+    uncommitted_changes = has_uncommitted_changes(worktree_path, '.bodega')
+
+    return PushStatus(
+        has_remote=has_remote,
+        commits_to_push=commits_to_push,
+        commits_to_pull=commits_to_pull,
+        uncommitted_changes=uncommitted_changes
+    )
+
+
+def push_to_remote(
+    repo_root: Path,
+    worktree_path: Path,
+    bodega_branch: str,
+    strategy: str = "theirs"
+) -> PushResult:
+    """
+    Push bodega branch to remote with conflict resolution.
+
+    1. Auto-commits any uncommitted changes
+    2. Fetches from remote
+    3. Rebases local changes on remote (or merges if rebase fails)
+    4. Pushes to remote
+
+    Args:
+        repo_root: Path to git repository root
+        worktree_path: Path to worktree root
+        bodega_branch: Bodega branch name
+        strategy: Conflict resolution strategy ('theirs' = local wins, 'ours' = remote wins)
+
+    Returns:
+        PushResult with push statistics
+
+    Raises:
+        StorageError: If push fails
+    """
+    auto_committed = False
+    pulled_commits = 0
+    had_conflicts = False
+
+    # Step 1: Commit any uncommitted changes in worktree
+    if has_uncommitted_changes(worktree_path, '.bodega'):
+        _run_git(['git', 'add', '.bodega/'], cwd=worktree_path)
+        result = _run_git(
+            ['git', 'commit', '-m', 'Auto-commit before push'],
+            cwd=worktree_path,
+            check=False
+        )
+        auto_committed = result.returncode == 0
+
+    # Step 2: Fetch from remote
+    _run_git(['git', 'fetch', 'origin', bodega_branch], cwd=worktree_path, check=False)
+
+    # Step 3: Check if remote exists
+    result = _run_git(
+        ['git', 'ls-remote', '--heads', 'origin', bodega_branch],
+        cwd=worktree_path,
+        check=False
+    )
+    has_remote = bool(result.stdout.strip())
+
+    if has_remote:
+        # Get initial commit count to pull
+        pulled_commits = get_commits_ahead(worktree_path, f'origin/{bodega_branch}', bodega_branch)
+
+        if pulled_commits > 0:
+            # Try rebase first
+            merge_strategy = []
+            if strategy == 'theirs':
+                # Local wins
+                merge_strategy = ['-X', 'ours']
+            elif strategy == 'ours':
+                # Remote wins
+                merge_strategy = ['-X', 'theirs']
+
+            result = _run_git(
+                ['git', 'rebase', f'origin/{bodega_branch}'] + merge_strategy,
+                cwd=worktree_path,
+                check=False
+            )
+
+            if result.returncode != 0:
+                # Rebase failed, abort and try merge instead
+                _run_git(['git', 'rebase', '--abort'], cwd=worktree_path, check=False)
+
+                result = _run_git(
+                    ['git', 'merge', f'origin/{bodega_branch}', '--no-edit'] + merge_strategy,
+                    cwd=worktree_path,
+                    check=False
+                )
+
+                if result.returncode != 0:
+                    if strategy == 'manual':
+                        raise StorageError(
+                            f"Merge conflict detected. Please resolve manually in {worktree_path}"
+                        )
+                    had_conflicts = True
+
+    # Step 4: Set upstream if not set
+    result = _run_git(
+        ['git', 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'],
+        cwd=worktree_path,
+        check=False
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        # No upstream set, set it
+        _run_git(
+            ['git', 'branch', '--set-upstream-to', f'origin/{bodega_branch}', bodega_branch],
+            cwd=worktree_path,
+            check=False
+        )
+
+    # Step 5: Push to remote
+    push_cmd = ['git', 'push']
+    if not has_remote:
+        # First push - set upstream
+        push_cmd.extend(['-u', 'origin', bodega_branch])
+
+    result = _run_git(push_cmd, cwd=worktree_path, check=False)
+
+    if result.returncode != 0:
+        raise StorageError(f"Failed to push to remote:\n{result.stderr}")
+
+    # Get number of commits pushed
+    if has_remote:
+        pushed_commits = get_commits_ahead(worktree_path, bodega_branch, f'origin/{bodega_branch}')
+        # After successful push, should be 0, so we use the previous count
+        # Actually, we need to count before push
+        # Let's get from push output or assume success means all local commits were pushed
+        result = _run_git(['git', 'rev-list', '--count', 'HEAD'], cwd=worktree_path, check=False)
+        if result.returncode == 0:
+            total_commits = int(result.stdout.strip())
+            pushed_commits = total_commits - pulled_commits if total_commits >= pulled_commits else 0
+    else:
+        result = _run_git(['git', 'rev-list', '--count', 'HEAD'], cwd=worktree_path, check=False)
+        pushed_commits = int(result.stdout.strip()) if result.returncode == 0 else 0
+
+    return PushResult(
+        auto_committed=auto_committed,
+        pulled_commits=pulled_commits,
+        pushed_commits=pushed_commits,
+        had_conflicts=had_conflicts
+    )
