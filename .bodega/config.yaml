@@ -3,3 +3,4 @@ defaults:
   type: task
 git:
   branch: bodega
+id_prefix: bg

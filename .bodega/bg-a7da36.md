@@ -1,6 +1,6 @@
 ---
 created: '2026-02-02T22:45:48.850421+00:00'
-id: bodega-a7da36
+id: bg-a7da36
 priority: 2
 status: open
 title: add 'bodega gc'
