@@ -31,7 +31,7 @@ def temp_repo(runner):
         config = yaml.safe_load(bodega_config.read_text())
         config["id_prefix"] = "bg"
         bodega_config.write_text(yaml.dump(config))
-        yield
+        yield bodega_dir.parent
 
 
 @pytest.fixture
@@ -152,18 +152,19 @@ def temp_git_repo_with_remote(tmp_path, monkeypatch):
 # ============================================================================
 
 @pytest.fixture
-def tmp_bodega(tmp_path):
+def tmp_bodega(runner):
     """
     Create a temporary bodega repository (without worktree).
 
     Yields the path to the .bodega directory.
     """
-    bodega_dir = init_repository(tmp_path)
-    bodega_config = bodega_dir / "config.yaml"
-    config = yaml.safe_load(bodega_config.read_text())
-    config["id_prefix"] = "bg"
-    bodega_config.write_text(yaml.dump(config))
-    yield bodega_dir
+    with runner.isolated_filesystem():
+        bodega_dir = init_repository()
+        bodega_config = bodega_dir / "config.yaml"
+        config = yaml.safe_load(bodega_config.read_text())
+        config["id_prefix"] = "bg"
+        bodega_config.write_text(yaml.dump(config))
+        yield bodega_dir
 
 
 @pytest.fixture
@@ -380,26 +381,3 @@ def tmp_bodega_with_deps(tmp_bodega, storage):
         "child": child.id,
         "grandchild": grandchild.id,
     }
-
-
-# ============================================================================
-# Utility Fixtures
-# ============================================================================
-
-@pytest.fixture
-def isolated_cli(runner, tmp_path):
-    """
-    CLI runner with isolated filesystem.
-
-    Provides a context manager that changes to the temp directory.
-    """
-    class IsolatedCLI:
-        def __init__(self):
-            self.runner = runner
-            self.path = tmp_path
-
-        def invoke(self, *args, **kwargs):
-            with self.runner.isolated_filesystem(temp_dir=self.path):
-                return self.runner.invoke(*args, **kwargs)
-
-    return IsolatedCLI()

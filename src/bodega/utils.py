@@ -4,10 +4,10 @@ import uuid
 import subprocess
 import re
 from typing import Optional
-from datetime import datetime, timezone, UTC
+from datetime import datetime, timezone, UTC, timedelta
 from pathlib import Path
 
-from bodega.errors import TicketNotFoundError, AmbiguousIDError
+from bodega.errors import TicketNotFoundError, AmbiguousIDError, BodegaError
 
 
 # ============================================================================
@@ -150,6 +150,48 @@ def format_iso(dt: datetime) -> str:
         ISO 8601 formatted string
     """
     return dt.isoformat()
+
+
+def parse_duration(duration_str: str) -> timedelta:
+    """
+    Parse a duration string into a timedelta.
+
+    Supported formats:
+    - Nd or Ndays: N days (e.g., 30d, 7days)
+    - Nh or Nhours: N hours (e.g., 12h, 24hours)
+    - Nm or Nminutes: N minutes (e.g., 30m, 45minutes)
+
+    Args:
+        duration_str: Duration string (e.g., "30d", "7days", "12h")
+
+    Returns:
+        timedelta representing the duration
+
+    Raises:
+        BodegaError: If the duration string is invalid
+    """
+    pattern = re.compile(r'^(\d+)(d|days|h|hours|m|minutes)$', re.IGNORECASE)
+    match = pattern.match(duration_str.strip())
+
+    if not match:
+        raise BodegaError(
+            f"Invalid duration format: '{duration_str}'. "
+            "Expected format: <number><unit> where unit is d/days, h/hours, or m/minutes. "
+            "Examples: 30d, 7days, 12h, 24hours"
+        )
+
+    value = int(match.group(1))
+    unit = match.group(2).lower()
+
+    if unit in ('d', 'days'):
+        return timedelta(days=value)
+    elif unit in ('h', 'hours'):
+        return timedelta(hours=value)
+    elif unit in ('m', 'minutes'):
+        return timedelta(minutes=value)
+    else:
+        # Should never reach here due to regex, but just in case
+        raise BodegaError(f"Unsupported duration unit: {unit}")
 
 
 # ============================================================================
