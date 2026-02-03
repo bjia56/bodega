@@ -1,103 +1,88 @@
 # Bodega - Agent Development Guide
 
-This document provides essential information for AI coding agents working in this repository.
+Essential guide for AI coding agents working in this repository.
 
 ## Project Overview
 
-Bodega is a Git-native issue tracking system for developers and AI agents, written in Python 3.11+.
-Uses Click for CLI, YAML for config, frontmatter for ticket storage in markdown files.
+Bodega is a Git-native issue tracking system written in Python 3.11+.
+- Stack: Click (CLI), YAML (config), python-frontmatter (ticket storage)
+- Tickets are Markdown files with YAML frontmatter in `.bodega/` directory
+- Git worktree workflow with dedicated `bodega` branch
 
 ## Build & Test Commands
 
 ### Installation
 ```bash
-# Install package in development mode
-pip install -e .
-
-# Install with dev dependencies
-pip install -e '.[dev]'
+pip install -e '.[dev]'     # Dev mode with all dependencies
+pip install -e .            # Runtime dependencies only
 ```
 
 ### Testing
 ```bash
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_ticket.py
-
-# Run single test function
-pytest tests/test_ticket.py::test_ticket_minimal
-
-# Run with verbose output
-pytest -v
-
-# Run with short traceback (default in pyproject.toml)
-pytest --tb=short
+pytest                                      # Run all tests (default: -v --tb=short)
+pytest tests/test_ticket.py                 # Run specific file
+pytest tests/test_ticket.py::test_minimal   # Run single test
+pytest -k "test_create"                     # Run tests matching pattern
 ```
 
-### Running the CLI
+### CLI Usage
 ```bash
-# Run via module
-python -m bodega --help
-
-# Run via entry point (after install)
-bodega --help
+python -m bodega --help     # Development
+bodega --help               # After install
+bodega --debug <command>    # Enable debug output
 ```
 
 ### Build
 ```bash
-# Build wheel
-python -m build
-
-# The wheel file is generated in dist/
+python -m build             # Creates dist/bodega-*.whl
 ```
 
 ## Code Style & Conventions
 
-### Import Order
-1. Standard library imports (e.g., `import os`, `from pathlib import Path`)
-2. Third-party imports (e.g., `import click`, `import frontmatter`)
-3. Local imports (e.g., `from bodega.models import Ticket`)
-
-Group imports with blank lines between groups. Use absolute imports for local modules.
-
-Example:
+### Imports (Always separate with blank lines)
 ```python
-import os
+# 1. Standard library
+import subprocess
 from pathlib import Path
+from datetime import datetime, UTC
 
+# 2. Third-party
 import click
 import frontmatter
+import yaml
 
+# 3. Local (absolute imports only)
 from bodega.models import Ticket
-from bodega.utils import generate_id
+from bodega.utils import generate_id, now_utc
+from bodega.errors import TicketNotFoundError
 ```
 
-### Type Hints
-- Use modern Python type hints (Python 3.11+ syntax)
-- Use `list[str]` instead of `List[str]`
-- Use `dict[str, int]` instead of `Dict[str, int]`
-- Use `str | None` instead of `Optional[str]`
-- Use `from typing import Optional` only when needed for complex types
+### Type Hints (Python 3.11+ syntax)
+```python
+from typing import Optional  # Only for complex types
 
-### Naming Conventions
-- **Files**: Snake case (e.g., `ticket.py`, `list_cmd.py`)
-- **Classes**: PascalCase (e.g., `Ticket`, `TicketStorage`, `BodegaConfig`)
-- **Functions/Methods**: Snake case (e.g., `generate_id`, `from_dict`, `is_blocked`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `DEFAULT_PREFIX`, `TEMPLATE`)
-- **Private**: Prefix with underscore (e.g., `_internal_helper`)
+def resolve_id(partial: str, all_ids: list[str]) -> str:  # Use list[T], dict[K,V]
+    ...
 
-### Docstrings
-Use triple-quoted strings for module, class, and function docstrings:
+def find_dir(start: Optional[Path] = None) -> Path | None:  # Use T | None when simple
+    ...
+```
 
+### Naming
+- **Files**: `snake_case.py` (e.g., `list_cmd.py`, `import_cmd.py`)
+- **Classes**: `PascalCase` (e.g., `Ticket`, `TicketStorage`)
+- **Functions/Methods**: `snake_case` (e.g., `generate_id`, `from_dict`)
+- **Constants**: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_PREFIX`, `TEMPLATE`)
+- **Private**: `_leading_underscore`
+- **Enums**: PascalCase class, UPPER values (e.g., `TicketType.TASK`)
+
+### Docstrings (Google style)
 ```python
 def generate_id(prefix: str = DEFAULT_PREFIX) -> str:
     """
     Generate a new ticket ID.
 
-    Format: {prefix}-{6 hex chars}
-    Example: bg-a1b2c3
+    Format: {prefix}-{6 hex chars}. Example: bg-a1b2c3
 
     Args:
         prefix: The prefix for the ID (default: "bg")
@@ -108,11 +93,6 @@ def generate_id(prefix: str = DEFAULT_PREFIX) -> str:
 ```
 
 ### Dataclasses
-- Use `@dataclass` decorator for data structures
-- Use `field(default_factory=list)` for mutable defaults
-- Implement `__post_init__` for validation
-
-Example:
 ```python
 from dataclasses import dataclass, field
 
@@ -120,113 +100,130 @@ from dataclasses import dataclass, field
 class Ticket:
     id: str
     title: str
-    tags: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)  # Mutable defaults
+    created: datetime = field(default_factory=now_utc)
 
     def __post_init__(self):
+        # Validation and type coercion
         if not self.title.strip():
             raise ValueError("Title must not be empty")
+        if isinstance(self.type, str):
+            self.type = TicketType(self.type)
 ```
 
 ### Error Handling
-- Use custom exception classes from `bodega.errors`
-- Raise specific exceptions (e.g., `TicketNotFoundError`, `StorageError`)
-- All custom exceptions inherit from `BodegaError`
-- Use descriptive error messages
-
-Example:
 ```python
-from bodega.errors import TicketNotFoundError
+from bodega.errors import TicketNotFoundError, AmbiguousIDError  # All inherit from BodegaError
+from bodega.commands.utils import require_repo, handle_error
 
-def get_ticket(ticket_id: str) -> Ticket:
-    if ticket_id not in storage:
-        raise TicketNotFoundError(f"No ticket found matching '{ticket_id}'")
-    return storage[ticket_id]
+@click.command()
+@pass_context
+def show(ctx: Context, ticket_id: str):
+    storage = require_repo(ctx)  # Auto-exits if not in repo
+    try:
+        ticket = storage.get(ticket_id)
+    except TicketNotFoundError as e:
+        handle_error(ctx, e)
 ```
 
 ### Click Commands
-- Use `@click.command()` decorator
-- Add help option: `@click.help_option("-h", "--help", help="Show this message and exit")`
-- Use `@pass_context` decorator to pass custom context
-- Import context from `bodega.commands.utils`
-
-Example:
 ```python
 from bodega.commands.utils import pass_context, Context
 
 @click.command()
-@click.help_option("-h", "--help", help="Show this message and exit")
-@click.argument("ticket_id")
+@click.help_option("-h", "--help", help="Show this message and exit")  # Always include
+@click.argument("ticket_id", metavar="ID")
+@click.option("--priority", "-p", type=int, help="Priority (0-4)")
 @pass_context
-def show(ctx: Context, ticket_id: str):
-    """Show ticket details."""
-    ticket = ctx.storage.get(ticket_id)
-    click.echo(ticket.title)
+def edit(ctx: Context, ticket_id: str, priority: int | None):
+    """Edit ticket properties."""
+    storage = require_repo(ctx)
+    # Implementation...
 ```
 
+**Shared decorators**: `ticket_id_argument`, `filter_options`, `format_option`
+**Command location**: `src/bodega/commands/`, register in `src/bodega/cli.py`
+
 ### Code Organization
-- Group related functionality with comment headers:
-  ```python
-  # ============================================================================
-  # Section Name
-  # ============================================================================
-  ```
-- Separate command registration from implementation
-- Keep commands in `src/bodega/commands/` directory
-- Register commands in `src/bodega/cli.py`
-
-### Testing Patterns
-- Use pytest fixtures from `tests/conftest.py`
-- Common fixtures: `runner`, `temp_repo`, `storage`, `sample_ticket`
-- Use `CliRunner` from Click for testing CLI commands
-- Test file naming: `test_*.py`
-- Test function naming: `test_*`
-
-Example:
 ```python
+# ============================================================================
+# Section Name (80-char lines)
+# ============================================================================
+```
+
+### Testing
+```python
+# Key fixtures (from tests/conftest.py):
+# - runner: Click CliRunner
+# - temp_repo: Temp bodega repo (no git)
+# - temp_git_repo: Temp git repo with initial commit
+# - storage: TicketStorage instance
+# - sample_ticket: Dict with sample data
+# - tmp_bodega_with_tickets: Pre-populated repo
+
 def test_ticket_minimal():
     """Test creating a ticket with minimal arguments."""
     t = Ticket(id="bg-abc123", title="Test ticket")
     assert t.id == "bg-abc123"
-    assert t.title == "Test ticket"
+    assert t.type == TicketType.TASK
+
+def test_create_command(runner, temp_repo):
+    """Test create command via CLI."""
+    result = runner.invoke(main, ["create", "New ticket"])
+    assert result.exit_code == 0
 ```
 
-### File Structure
+## File Structure
 ```
 src/bodega/
-├── __init__.py         # Version info
-├── cli.py              # Main CLI entry point
-├── models/
-│   └── ticket.py       # Data models
-├── commands/
-│   ├── create.py       # Command implementations
-│   └── utils.py        # Command utilities
-├── config.py           # Configuration
-├── storage.py          # Ticket storage
-├── errors.py           # Custom exceptions
-├── utils.py            # Utility functions
+├── cli.py              # Main CLI group, command registration
+├── models/ticket.py    # Ticket dataclass, enums (TicketType, TicketStatus)
+├── commands/           # Command implementations
+│   ├── utils.py        # Context, pass_context, error handling, shared decorators
+│   ├── lifecycle.py    # start, close, reopen, status
+│   ├── list_cmd.py     # list, ready, blocked, closed, query
+│   └── ...
+├── storage.py          # TicketStorage, init_repository
+├── config.py           # BodegaConfig, load_config
+├── worktree.py         # Git worktree operations
+├── errors.py           # BodegaError, TicketNotFoundError, etc.
+├── utils.py            # ID gen/validation, datetime, git utils
 └── output.py           # Output formatting
 
 tests/
 ├── conftest.py         # Shared fixtures
-├── test_*.py           # Test files
+└── test_*.py           # Test modules
 ```
 
-## Git Workflow
+## Important Domain Rules
 
-- Main branch: `main`
-- Python version: 3.11+
-- CI runs on: push to main, pull requests
-- Tests must pass before merge
+### Ticket IDs
+- Pattern: `^[a-z][a-z0-9]*-[a-z0-9\.]+$` (e.g., `bg-abc123`)
+- Generate: `generate_id(prefix)` from `bodega.utils`
+- Validate: `is_valid_id(id_str)`
+- Resolve partial: `resolve_id(partial, all_ids)`
 
-## Additional Notes
+### Timestamps
+```python
+from datetime import datetime, UTC
+from bodega.utils import now_utc
 
-- Use `datetime.now(UTC)` for timestamps, not `datetime.utcnow()`
-- Store dates as ISO 8601 strings in frontmatter
-- Ticket IDs follow pattern: `^[a-z]+-[a-z0-9]+$` (e.g., `bg-abc123`)
-- Priority range: 0 (critical) to 4 (backlog)
-- Ticket statuses: `open`, `in-progress`, `closed`
-- Ticket types: `bug`, `feature`, `task`, `epic`, `chore`
+# ALWAYS use now_utc(), NEVER datetime.utcnow() (deprecated)
+created = now_utc()
+# Store as ISO 8601: created.isoformat()
+```
 
-## Issue tracking
+### Ticket Properties
+- **Types** (TicketType enum): `bug`, `feature`, `task`, `epic`, `chore`
+- **Statuses** (TicketStatus enum): `open`, `in-progress`, `closed`
+- **Priority**: 0-4 (0=critical, 1=high, 2=normal, 3=low, 4=backlog)
+- **Dependencies**: List of IDs in `deps` field (blocks this ticket)
+- **Links**: Symmetric relationships (related tickets)
 
-This project uses `bodega` for issue tracking. Run `bodega howto` to get started.
+## CI/CD
+- Runs on: push to `main`, pull requests
+- Python: 3.11
+- Workflow: `.github/workflows/test.yml`
+
+## Issue Tracking
+This project uses `bodega` for issue tracking. Run `bodega howto` for AI agent usage examples.

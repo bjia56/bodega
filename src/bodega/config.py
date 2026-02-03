@@ -74,7 +74,7 @@ class BodegaConfig:
 
     # Git worktree settings
     git_branch: str = ""  # Empty = store in current branch, non-empty = use worktree
-    git_auto_commit: bool = True
+    git_auto_commit: bool = False
     git_sync_strategy: str = "theirs"  # theirs, ours, manual
 
     # Paths (computed, not from config file)

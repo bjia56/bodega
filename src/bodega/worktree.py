@@ -72,6 +72,78 @@ def _run_git(cmd: list[str], cwd: Optional[Path] = None, check: bool = True) -> 
         raise StorageError(f"Git command failed: {' '.join(cmd)}\n{e.stderr}")
 
 
+def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
+    """
+    Generate a descriptive commit message for batched changes.
+
+    Lists ticket IDs/titles for .md files and other files separately.
+
+    Args:
+        worktree_path: Path to worktree root
+        prefix: First line of commit message (e.g., "Auto-commit before sync")
+
+    Returns:
+        Multi-line commit message with ticket and file details
+    """
+    import frontmatter
+
+    # Get list of changed files
+    result = _run_git(
+        ['git', 'diff', '--cached', '--name-only', '.bodega/'],
+        cwd=worktree_path,
+        check=False
+    )
+
+    if result.returncode != 0:
+        # No staged changes, return simple message
+        return prefix
+
+    changed_files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+
+    if not changed_files:
+        return prefix
+
+    # Separate ticket files from other files
+    ticket_files = []
+    other_files = []
+
+    for file_path in changed_files:
+        if file_path.endswith('.md') and '/.bodega/' in file_path:
+            # It's a ticket file - try to read it for title
+            full_path = worktree_path / file_path
+            if full_path.exists():
+                try:
+                    post = frontmatter.load(full_path)
+                    ticket_id = post.metadata.get('id', full_path.stem)
+                    ticket_title = post.metadata.get('title', 'Unknown title')
+                    ticket_files.append((ticket_id, ticket_title))
+                except Exception:
+                    # If we can't read it, just use the filename
+                    ticket_files.append((full_path.stem, '(unable to read title)'))
+            else:
+                # File was deleted - just use the filename
+                ticket_files.append((full_path.stem, '(deleted)'))
+        else:
+            other_files.append(file_path)
+
+    # Build commit message
+    lines = [prefix]
+
+    if ticket_files:
+        lines.append("")
+        lines.append("Tickets:")
+        for ticket_id, title in ticket_files:
+            lines.append(f"  {ticket_id}: {title}")
+
+    if other_files:
+        lines.append("")
+        lines.append("Other files:")
+        for file_path in other_files:
+            lines.append(f"  {file_path}")
+
+    return '\n'.join(lines)
+
+
 def get_current_branch(repo_root: Path) -> str:
     """
     Get the current git branch name.
@@ -380,8 +452,9 @@ def sync_branches(
     # Commit any uncommitted changes in worktree
     if has_uncommitted_changes(worktree_path, '.bodega'):
         _run_git(['git', 'add', '.bodega/'], cwd=worktree_path)
+        commit_msg = _generate_batch_commit_message(worktree_path, 'Auto-commit before sync')
         _run_git(
-            ['git', 'commit', '-m', 'Auto-commit before sync'],
+            ['git', 'commit', '-m', commit_msg],
             cwd=worktree_path,
             check=False
         )
@@ -575,8 +648,9 @@ def push_to_remote(
     # Step 1: Commit any uncommitted changes in worktree
     if has_uncommitted_changes(worktree_path, '.bodega'):
         _run_git(['git', 'add', '.bodega/'], cwd=worktree_path)
+        commit_msg = _generate_batch_commit_message(worktree_path, 'Auto-commit before push')
         result = _run_git(
-            ['git', 'commit', '-m', 'Auto-commit before push'],
+            ['git', 'commit', '-m', commit_msg],
             cwd=worktree_path,
             check=False
         )
