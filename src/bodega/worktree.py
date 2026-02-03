@@ -108,7 +108,7 @@ def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
     other_files = []
 
     for file_path in changed_files:
-        if file_path.endswith('.md') and '/.bodega/' in file_path:
+        if file_path.endswith('.md') and '.bodega/' in file_path:
             # It's a ticket file - try to read it for title
             full_path = worktree_path / file_path
             if full_path.exists():
