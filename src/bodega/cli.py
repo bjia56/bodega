@@ -60,6 +60,7 @@ from bodega.commands import (
     sync,
     push,
     howto,
+    gc,
 )
 
 # Register individual commands
@@ -98,6 +99,9 @@ main.add_command(import_cmd.import_tickets)
 # Register sync commands
 main.add_command(sync.sync)
 main.add_command(push.push)
+
+# Register gc command
+main.add_command(gc.gc)
 
 # Register howto command
 main.add_command(howto.howto)

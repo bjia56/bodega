@@ -137,7 +137,7 @@ class TicketStorage:
     # Writing Tickets
     # ========================================================================
 
-    def save(self, ticket: Ticket) -> Path:
+    def save(self, ticket: Ticket, update_timestamp: bool = True) -> Path:
         """
         Save a ticket to disk.
 
@@ -151,7 +151,8 @@ class TicketStorage:
         Returns:
             Path to the saved ticket file
         """
-        ticket.updated = now_utc()
+        if update_timestamp:
+            ticket.updated = now_utc()
         path = self._ticket_path(ticket.id)
 
         content = ticket.to_markdown()
@@ -171,7 +172,7 @@ class TicketStorage:
 
         return path
 
-    def create(self, ticket: Ticket) -> Ticket:
+    def create(self, ticket: Ticket, update_timestamp: bool = True) -> Ticket:
         """
         Create a new ticket.
 
@@ -196,7 +197,8 @@ class TicketStorage:
             raise TicketExistsError(f"Ticket already exists: {ticket.id}")
 
         # Set timestamps
-        ticket.updated = now_utc()
+        if update_timestamp:
+            ticket.updated = now_utc()
         content = ticket.to_markdown()
 
         with self._file_lock(path):
