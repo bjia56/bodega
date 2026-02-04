@@ -61,6 +61,7 @@ from bodega.commands import (
     push,
     howto,
     gc,
+    mcp,
 )
 
 # Register individual commands
@@ -105,6 +106,9 @@ main.add_command(gc.gc)
 
 # Register howto command
 main.add_command(howto.howto)
+
+# Register mcp command
+main.add_command(mcp.mcp)
 
 
 if __name__ == "__main__":

@@ -3,9 +3,8 @@
 import click
 
 from bodega.commands.utils import pass_context, Context, require_repo
-from bodega.models.ticket import TicketStatus
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
-from bodega.utils import get_git_user
+from bodega.operations import start_ticket, close_ticket, reopen_ticket
 
 
 @click.command()
@@ -28,26 +27,13 @@ def start(ctx: Context, ticket_id: str, assignee: str | None):
     storage = require_repo(ctx)
 
     try:
-        ticket = storage.get(ticket_id)
-
-        already_in_progress = ticket.status == TicketStatus.IN_PROGRESS
+        ticket, already_in_progress = start_ticket(
+            storage, ctx.config, ticket_id, assignee
+        )
 
         if already_in_progress and assignee is None:
             click.echo(f"{ticket.id} is already in-progress")
             return
-
-        # Update status if not already in-progress
-        if not already_in_progress:
-            ticket.status = TicketStatus.IN_PROGRESS
-            # Set assignee to git user if not already set and not explicitly provided
-            if assignee is None and not ticket.assignee:
-                ticket.assignee = ctx.config.default_assignee or get_git_user()
-
-        # Update assignee if explicitly provided
-        if assignee is not None:
-            ticket.assignee = assignee if assignee else None
-
-        storage.save(ticket)
 
         if already_in_progress:
             click.echo(f"Updated {ticket.id}")
@@ -82,14 +68,12 @@ def close(ctx: Context, ticket_id: str):
     storage = require_repo(ctx)
 
     try:
-        ticket = storage.get(ticket_id)
+        ticket, already_closed = close_ticket(storage, ticket_id)
 
-        if ticket.status == TicketStatus.CLOSED:
+        if already_closed:
             click.echo(f"{ticket.id} is already closed")
             return
 
-        ticket.status = TicketStatus.CLOSED
-        storage.save(ticket)
         click.echo(f"{ticket.id} → closed")
 
     except TicketNotFoundError as e:
@@ -118,14 +102,12 @@ def reopen(ctx: Context, ticket_id: str):
     storage = require_repo(ctx)
 
     try:
-        ticket = storage.get(ticket_id)
+        ticket, already_open = reopen_ticket(storage, ticket_id)
 
-        if ticket.status == TicketStatus.OPEN:
+        if already_open:
             click.echo(f"{ticket.id} is already open")
             return
 
-        ticket.status = TicketStatus.OPEN
-        storage.save(ticket)
         click.echo(f"{ticket.id} → open")
 
     except TicketNotFoundError as e:

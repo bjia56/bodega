@@ -6,8 +6,10 @@ import sys
 
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.models.ticket import TicketStatus
+from bodega.operations import get_ready_tickets, query_tickets
 from bodega.output import format_tickets, ticket_to_dict
 from bodega.graph import DependencyGraph
+from bodega.errors import TicketNotFoundError, AmbiguousIDError
 
 
 @click.command(name="list")
@@ -106,11 +108,7 @@ def ready(ctx: Context):
         bodega ready
     """
     storage = require_repo(ctx)
-    graph = DependencyGraph(storage)
-
-    tickets = graph.get_ready_tickets()
-    tickets.sort(key=lambda t: (t.priority, t.created))
-
+    tickets = get_ready_tickets(storage)
     output = format_tickets(tickets, ctx.config)
     click.echo(output)
 
@@ -225,35 +223,29 @@ def query(
     if pretty is None:
         pretty = sys.stdout.isatty()
 
-    if ticket_id:
-        # Single ticket query
-        try:
-            ticket = storage.get(ticket_id)
-            data = ticket_to_dict(ticket)
-            if pretty:
-                click.echo(json.dumps(data, indent=2, default=str))
-            else:
-                click.echo(json.dumps(data, default=str))
-        except Exception as e:
-            click.echo(f"Error: {e}", err=True)
-            raise SystemExit(1)
-        return
+    try:
+        status_filter = TicketStatus(status) if status else None
+        result = query_tickets(
+            storage,
+            ticket_id=ticket_id,
+            status=status_filter,
+            ticket_type=ticket_type,
+            tag=tag,
+            assignee=assignee,
+            priority=priority,
+            include_closed=include_all,
+        )
 
-    # Multi-ticket query
-    status_filter = TicketStatus(status) if status else None
+        # Convert to dict
+        if ticket_id:
+            data = ticket_to_dict(result)  # result is single Ticket
+        else:
+            data = [ticket_to_dict(t) for t in result]  # result is list
 
-    tickets = list(storage.query(
-        status=status_filter,
-        ticket_type=ticket_type,
-        tag=tag,
-        assignee=assignee,
-        priority=priority,
-        include_closed=include_all,
-    ))
+        # Output JSON
+        indent = 2 if pretty else None
+        click.echo(json.dumps(data, indent=indent, default=str))
 
-    data = [ticket_to_dict(t) for t in tickets]
-
-    if pretty:
-        click.echo(json.dumps(data, indent=2, default=str))
-    else:
-        click.echo(json.dumps(data, default=str))
+    except (TicketNotFoundError, AmbiguousIDError) as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)

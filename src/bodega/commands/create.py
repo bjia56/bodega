@@ -9,6 +9,7 @@ import frontmatter
 
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.models.ticket import Ticket, TicketType, TicketStatus
+from bodega.operations import create_ticket
 
 
 TEMPLATE = """\
@@ -88,20 +89,30 @@ def create(
     final_assignee = assignee or config.default_assignee
 
     if title:
-        # Create directly from arguments
-        ticket = Ticket(
-            id="",  # Will be generated
-            title=title,
-            type=TicketType(final_type),
-            status=TicketStatus.OPEN,
-            priority=final_priority,
-            assignee=final_assignee,
-            tags=list(tag),
-            deps=list(dep),
-            parent=parent,
-            external_ref=external_ref,
-            description=description,
-        )
+        # Create directly from arguments using operations module
+        try:
+            created, missing_deps = create_ticket(
+                storage,
+                config,
+                title=title,
+                ticket_type=final_type,
+                priority=final_priority,
+                assignee=final_assignee,
+                tags=list(tag),
+                deps=list(dep),
+                parent=parent,
+                external_ref=external_ref,
+                description=description,
+            )
+
+            # Warn about missing dependencies
+            for d in missing_deps:
+                click.echo(f"Warning: Dependency {d} does not exist", err=True)
+
+            click.echo(created.id)
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
     else:
         # Interactive creation via editor
         ticket = create_interactive(ctx, final_type, final_priority, final_assignee)
@@ -109,15 +120,15 @@ def create(
             click.echo("Ticket creation cancelled.", err=True)
             raise SystemExit(1)
 
-    # Validate dependencies exist
-    all_ids = storage.list_ids()
-    for d in ticket.deps:
-        if d not in all_ids:
-            click.echo(f"Warning: Dependency {d} does not exist", err=True)
+        # Validate dependencies exist
+        all_ids = storage.list_ids()
+        for d in ticket.deps:
+            if d not in all_ids:
+                click.echo(f"Warning: Dependency {d} does not exist", err=True)
 
-    # Create the ticket
-    created = storage.create(ticket)
-    click.echo(created.id)
+        # Create the ticket
+        created = storage.create(ticket)
+        click.echo(created.id)
 
 
 def create_interactive(

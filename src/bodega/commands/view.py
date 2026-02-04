@@ -7,6 +7,7 @@ import json
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
 from bodega.output import format_ticket_detail, ticket_to_dict
+from bodega.operations import add_note, edit_ticket
 
 
 @click.command()
@@ -119,46 +120,20 @@ def edit(
         ])
 
         if has_modifications:
-            # Apply modifications directly
-            modified = False
-
-            if title is not None:
-                ticket.title = title
-                modified = True
-
-            if ticket_type is not None:
-                from bodega.models.ticket import TicketType
-                ticket.type = TicketType(ticket_type)
-                modified = True
-
-            if priority is not None:
-                ticket.priority = priority
-                modified = True
-
-            if assignee is not None:
-                ticket.assignee = assignee if assignee else None
-                modified = True
-
-            if len(tag) > 0:
-                for t in tag:
-                    if t not in ticket.tags:
-                        ticket.tags.append(t)
-                modified = True
-
-            if len(remove_tag) > 0:
-                for t in remove_tag:
-                    if t in ticket.tags:
-                        ticket.tags.remove(t)
-                modified = True
-
-            if description is not None:
-                ticket.description = description
-                modified = True
+            # Apply modifications using operations module
+            ticket, modified = edit_ticket(
+                storage,
+                ticket_id,
+                title=title,
+                ticket_type=ticket_type,
+                priority=priority,
+                assignee=assignee,
+                add_tags=list(tag) if tag else None,
+                remove_tags=list(remove_tag) if remove_tag else None,
+                description=description,
+            )
 
             if modified:
-                from bodega.utils import now_utc
-                ticket.updated = now_utc()
-                storage.save(ticket)
                 click.echo(f"Updated {ticket.id}")
             else:
                 click.echo(f"No changes made to {ticket.id}")
@@ -214,12 +189,7 @@ def note(ctx: Context, ticket_id: str, text: str):
     storage = require_repo(ctx)
 
     try:
-        ticket = storage.get(ticket_id)
-
-        # Add timestamped note
-        ticket.add_note(text)
-
-        storage.save(ticket)
+        ticket = add_note(storage, ticket_id, text)
         click.echo(f"Added note to {ticket.id}")
 
     except TicketNotFoundError as e:

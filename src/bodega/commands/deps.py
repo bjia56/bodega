@@ -3,6 +3,7 @@ import click
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.storage import TicketNotFoundError
 from bodega.graph import DependencyGraph
+from bodega.operations import add_dependency, remove_dependency
 
 @click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
@@ -23,30 +24,12 @@ def dep(ctx: Context, ticket_id: str, blocker_id: str):
     storage = require_repo(ctx)
 
     try:
-        # Resolve both IDs
-        ticket = storage.get(ticket_id)
-        blocker = storage.get(blocker_id)
+        ticket, blocker, already_dep = add_dependency(storage, ticket_id, blocker_id)
 
-        # Check for self-dependency
-        if ticket.id == blocker.id:
-            click.echo("Error: Ticket cannot depend on itself", err=True)
-            raise SystemExit(1)
-
-        # Check if already a dependency
-        if blocker.id in ticket.deps:
+        if already_dep:
             click.echo(f"{ticket.id} already depends on {blocker.id}")
-            return
-
-        # Check for cycle
-        graph = DependencyGraph(storage)
-        if graph.would_create_cycle(ticket.id, blocker.id):
-            click.echo(f"Error: Adding this dependency would create a cycle", err=True)
-            raise SystemExit(1)
-
-        # Add dependency
-        ticket.deps.append(blocker.id)
-        storage.save(ticket)
-        click.echo(f"{ticket.id} now depends on {blocker.id}")
+        else:
+            click.echo(f"{ticket.id} now depends on {blocker.id}")
 
     except TicketNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
@@ -72,16 +55,12 @@ def undep(ctx: Context, ticket_id: str, blocker_id: str):
     storage = require_repo(ctx)
 
     try:
-        ticket = storage.get(ticket_id)
-        blocker = storage.get(blocker_id)
+        ticket, blocker, was_dependency = remove_dependency(storage, ticket_id, blocker_id)
 
-        if blocker.id not in ticket.deps:
+        if not was_dependency:
             click.echo(f"{ticket.id} does not depend on {blocker.id}")
-            return
-
-        ticket.deps.remove(blocker.id)
-        storage.save(ticket)
-        click.echo(f"Removed dependency: {ticket.id} no longer depends on {blocker.id}")
+        else:
+            click.echo(f"Removed dependency: {ticket.id} no longer depends on {blocker.id}")
 
     except TicketNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
