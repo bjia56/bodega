@@ -289,3 +289,89 @@ def test_ticket_string_enum_conversion():
     assert t.type == TicketType.CHORE
     assert isinstance(t.status, TicketStatus)
     assert t.status == TicketStatus.OPEN
+
+
+def test_ticket_description_with_subheadings():
+    """Test that unrecognized headings are included in description content."""
+    # Description should include everything until the next recognized section
+    content = """## Description
+
+This is the main description.
+
+## Changes needed
+1. First change
+2. Second change
+
+## Implementation notes
+Some implementation details here.
+
+## Design
+
+This is the design section.
+
+## More design details
+These should be part of design.
+
+## Acceptance Criteria
+
+Must pass all tests."""
+
+    data = {
+        "id": "bg-abc123",
+        "title": "Test with subheadings",
+        "type": "task",
+        "status": "open",
+        "content": content,
+    }
+
+    t = Ticket.from_dict(data)
+
+    # Description should include all content until ## Design
+    assert t.description is not None
+    assert "This is the main description." in t.description
+    assert "## Changes needed" in t.description
+    assert "1. First change" in t.description
+    assert "## Implementation notes" in t.description
+    assert "Some implementation details here." in t.description
+    # Should NOT include Design section content
+    assert "This is the design section." not in t.description
+
+    # Design should include its content and sub-headings until ## Acceptance Criteria
+    assert t.design is not None
+    assert "This is the design section." in t.design
+    assert "## More design details" in t.design
+    assert "These should be part of design." in t.design
+    # Should NOT include Acceptance Criteria content
+    assert "Must pass all tests." not in t.design
+
+    # Acceptance criteria should have its content
+    assert t.acceptance_criteria is not None
+    assert "Must pass all tests." in t.acceptance_criteria
+
+
+def test_ticket_roundtrip_with_subheadings():
+    """Test that tickets with sub-headings survive roundtrip conversion."""
+    original = Ticket(
+        id="bg-abc123",
+        title="Test",
+        description="Main description\n\n## Subheading 1\nContent 1\n\n## Subheading 2\nContent 2",
+        design="Design overview\n\n## Technical details\nSome details",
+    )
+
+    # Convert to markdown
+    md = original.to_markdown()
+
+    # Parse back using frontmatter
+    post = frontmatter.loads(md)
+    data = dict(post.metadata)
+    data["content"] = post.content
+
+    # Convert back to ticket
+    restored = Ticket.from_dict(data)
+
+    # All content should be preserved
+    assert restored.description == original.description
+    assert "## Subheading 1" in restored.description
+    assert "## Subheading 2" in restored.description
+    assert restored.design == original.design
+    assert "## Technical details" in restored.design
