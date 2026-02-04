@@ -47,7 +47,7 @@ def is_valid_id(id_str: str) -> bool:
         id_str: The string to validate
 
     Returns:
-        True if the string matches the pattern ^[a-z][a-z0-9]*-[a-z0-9\.]+$
+        True if the string matches the pattern ^[a-z][a-z0-9]*-[a-z0-9\\.]+$
     """
     return bool(id_pattern.match(id_str))
 
