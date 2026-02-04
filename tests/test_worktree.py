@@ -13,6 +13,8 @@ from bodega.worktree import (
     get_sync_status,
     sync_branches,
     cleanup_worktree,
+    _generate_batch_commit_message,
+    _detect_ticket_state_change,
 )
 from bodega.storage import init_repository
 from bodega.errors import StorageError
@@ -264,6 +266,220 @@ def test_auto_commit_nothing_to_commit(temp_git_repo):
     )
 
     assert commit_sha is None
+
+
+# ============================================================================
+# Batch Commit Message Tests
+# ============================================================================
+
+def test_detect_ticket_state_change_created(temp_git_repo):
+    """Test _detect_ticket_state_change returns 'created' for new tickets."""
+    bodega_dir = temp_git_repo / ".bodega"
+    init_repository(temp_git_repo)
+    worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
+
+    metadata = {
+        "id": "bg-test123",
+        "title": "Test ticket",
+        "status": "open"
+    }
+
+    result = _detect_ticket_state_change(
+        worktree_bodega_dir.parent,
+        ".bodega/bg-test123.md",
+        metadata
+    )
+
+    assert result == "created"
+
+
+def test_detect_ticket_state_change_closed(temp_git_repo):
+    """Test _detect_ticket_state_change returns 'closed' when status changes to closed."""
+    bodega_dir = temp_git_repo / ".bodega"
+    init_repository(temp_git_repo)
+    worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
+    worktree_path = worktree_bodega_dir.parent
+
+    # Create initial ticket with open status
+    ticket_file = worktree_bodega_dir / "bg-test123.md"
+    ticket_file.write_text("""
+---
+id: bg-test123
+title: Test ticket
+status: open
+---
+# Test
+""")
+    subprocess.run(["git", "add", ".bodega/"], cwd=worktree_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=worktree_path, check=True, capture_output=True)
+
+    # Update ticket to closed status
+    metadata = {
+        "id": "bg-test123",
+        "title": "Test ticket",
+        "status": "closed"
+    }
+
+    result = _detect_ticket_state_change(
+        worktree_path,
+        ".bodega/bg-test123.md",
+        metadata
+    )
+
+    assert result == "closed"
+
+
+def test_detect_ticket_state_change_reopened(temp_git_repo):
+    """Test _detect_ticket_state_change returns 'reopened' when status changes from closed."""
+    bodega_dir = temp_git_repo / ".bodega"
+    init_repository(temp_git_repo)
+    worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
+    worktree_path = worktree_bodega_dir.parent
+
+    # Create initial ticket with closed status
+    ticket_file = worktree_bodega_dir / "bg-test123.md"
+    ticket_file.write_text("""
+---
+id: bg-test123
+title: Test ticket
+status: closed
+---
+# Test
+""")
+    subprocess.run(["git", "add", ".bodega/"], cwd=worktree_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=worktree_path, check=True, capture_output=True)
+
+    # Update ticket to open status
+    metadata = {
+        "id": "bg-test123",
+        "title": "Test ticket",
+        "status": "open"
+    }
+
+    result = _detect_ticket_state_change(
+        worktree_path,
+        ".bodega/bg-test123.md",
+        metadata
+    )
+
+    assert result == "reopened"
+
+
+def test_detect_ticket_state_change_updated(temp_git_repo):
+    """Test _detect_ticket_state_change returns 'updated' for other changes."""
+    bodega_dir = temp_git_repo / ".bodega"
+    init_repository(temp_git_repo)
+    worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
+    worktree_path = worktree_bodega_dir.parent
+
+    # Create initial ticket
+    ticket_file = worktree_bodega_dir / "bg-test123.md"
+    ticket_file.write_text("""
+---
+id: bg-test123
+title: Test ticket
+status: open
+priority: 2
+---
+# Test
+""")
+    subprocess.run(["git", "add", ".bodega/"], cwd=worktree_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=worktree_path, check=True, capture_output=True)
+
+    # Update priority (status unchanged)
+    metadata = {
+        "id": "bg-test123",
+        "title": "Test ticket",
+        "status": "open",
+        "priority": 1
+    }
+
+    result = _detect_ticket_state_change(
+        worktree_path,
+        ".bodega/bg-test123.md",
+        metadata
+    )
+
+    assert result == "updated"
+
+
+def test_generate_batch_commit_message_with_state_changes(temp_git_repo):
+    """Test _generate_batch_commit_message includes state changes."""
+    bodega_dir = temp_git_repo / ".bodega"
+    init_repository(temp_git_repo)
+    worktree_bodega_dir = init_worktree(temp_git_repo, bodega_dir, "bodega")
+    worktree_path = worktree_bodega_dir.parent
+
+    # Create initial tickets
+    ticket1 = worktree_bodega_dir / "bg-test123.md"
+    ticket1.write_text("""
+---
+id: bg-test123
+title: First ticket
+status: open
+---
+# Test 1
+""")
+
+    ticket2 = worktree_bodega_dir / "bg-test456.md"
+    ticket2.write_text("""
+---
+id: bg-test456
+title: Second ticket
+status: open
+priority: 2
+---
+# Test 2
+""")
+
+    # Commit initial state
+    subprocess.run(["git", "add", ".bodega/"], cwd=worktree_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=worktree_path, check=True, capture_output=True)
+
+    # Make changes: close ticket1, update priority on ticket2
+    ticket1.write_text("""
+---
+id: bg-test123
+title: First ticket
+status: closed
+---
+# Test 1
+""")
+
+    ticket2.write_text("""
+---
+id: bg-test456
+title: Second ticket
+status: open
+priority: 1
+---
+# Test 2
+""")
+
+    # Add a new ticket
+    ticket3 = worktree_bodega_dir / "bg-test789.md"
+    ticket3.write_text("""
+---
+id: bg-test789
+title: New ticket
+status: open
+---
+# Test 3
+""")
+
+    subprocess.run(["git", "add", ".bodega/"], cwd=worktree_path, check=True, capture_output=True)
+
+    # Generate commit message
+    commit_msg = _generate_batch_commit_message(
+        worktree_path,
+        "Auto-commit before sync"
+    )
+
+    # Check the message includes all tickets with their state changes
+    assert "Auto-commit before sync" in commit_msg
+    assert "bg-test123: First ticket (closed)" in commit_msg
+    assert "bg-test456: Second ticket (updated)" in commit_msg
+    assert "bg-test789: New ticket (created)" in commit_msg
 
 
 # ============================================================================

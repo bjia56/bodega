@@ -76,7 +76,14 @@ def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
     """
     Generate a descriptive commit message for batched changes.
 
-    Lists ticket IDs/titles for .md files and other files separately.
+    Lists ticket IDs/titles for .md files with detected state changes,
+    and other files separately.
+
+    State changes detected:
+    - "created" for new tickets
+    - "closed" for tickets with status changed to closed
+    - "reopened" for tickets with status changed from closed
+    - "updated" for all other changes
 
     Args:
         worktree_path: Path to worktree root
@@ -109,20 +116,21 @@ def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
 
     for file_path in changed_files:
         if file_path.endswith('.md') and '.bodega/' in file_path:
-            # It's a ticket file - try to read it for title
+            # It's a ticket file - try to read it for title and detect state change
             full_path = worktree_path / file_path
             if full_path.exists():
                 try:
                     post = frontmatter.load(full_path)
                     ticket_id = post.metadata.get('id', full_path.stem)
                     ticket_title = post.metadata.get('title', 'Unknown title')
-                    ticket_files.append((ticket_id, ticket_title))
+                    change_type = _detect_ticket_state_change(worktree_path, file_path, post.metadata)
+                    ticket_files.append((ticket_id, ticket_title, change_type))
                 except Exception:
                     # If we can't read it, just use the filename
-                    ticket_files.append((full_path.stem, '(unable to read title)'))
+                    ticket_files.append((full_path.stem, '(unable to read title)', 'updated'))
             else:
                 # File was deleted - just use the filename
-                ticket_files.append((full_path.stem, '(deleted)'))
+                ticket_files.append((full_path.stem, '(deleted)', 'updated'))
         else:
             other_files.append(file_path)
 
@@ -132,8 +140,12 @@ def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
     if ticket_files:
         lines.append("")
         lines.append("Tickets:")
-        for ticket_id, title in ticket_files:
-            lines.append(f"  {ticket_id}: {title}")
+        for ticket_id, title, change_type in ticket_files:
+            if change_type:
+                change_desc = f" ({change_type})"
+            else:
+                change_desc = ""
+            lines.append(f"  {ticket_id}: {title}{change_desc}")
 
     if other_files:
         lines.append("")
@@ -142,6 +154,53 @@ def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
             lines.append(f"  {file_path}")
 
     return '\n'.join(lines)
+
+
+def _detect_ticket_state_change(worktree_path: Path, file_path: str, new_metadata: dict) -> str:
+    """
+    Detect ticket state changes by comparing old and new versions.
+
+    Args:
+        worktree_path: Path to worktree root
+        file_path: Relative path to ticket file
+        new_metadata: New ticket metadata (frontmatter)
+
+    Returns:
+        State change: "created", "closed", "reopened", "updated", or ""
+    """
+    import frontmatter
+
+    # Get the old version from git
+    result = _run_git(
+        ['git', 'show', f'HEAD:{file_path}'],
+        cwd=worktree_path,
+        check=False
+    )
+
+    if result.returncode != 0:
+        # File didn't exist before (new ticket)
+        return "created"
+
+    # Parse the old version
+    try:
+        old_post = frontmatter.loads(result.stdout)
+        old_metadata = old_post.metadata
+    except Exception:
+        # Could not parse old version
+        return ""
+
+    old_status = old_metadata.get('status')
+    new_status = new_metadata.get('status')
+
+    # Detect status changes
+    if new_status == 'closed':
+        return "closed"
+    elif old_status == 'closed' and new_status != 'closed':
+        return "reopened"
+    elif old_status == new_status:
+        return "updated"
+
+    return ""
 
 
 def get_current_branch(repo_root: Path) -> str:
