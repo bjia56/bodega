@@ -7,10 +7,11 @@ import fcntl
 from contextlib import contextmanager
 import time
 
-from bodega.models.ticket import Ticket, TicketStatus, TicketType
+from bodega.models.ticket import Ticket, TicketStatus
 from bodega.config import BodegaConfig, load_config, write_default_config
 from bodega.utils import resolve_id, generate_id, now_utc
-from bodega.errors import StorageError, TicketNotFoundError, TicketExistsError, AmbiguousIDError
+from bodega.errors import StorageError, TicketNotFoundError, TicketExistsError
+from bodega.worktree import auto_commit_ticket
 
 
 # ============================================================================
@@ -162,7 +163,6 @@ class TicketStorage:
 
         # Auto-commit to bodega branch (only in worktree mode)
         if self.use_worktree and self.config.git_auto_commit:
-            from bodega.worktree import auto_commit_ticket
             auto_commit_ticket(
                 self.worktree_path,
                 path,
@@ -206,7 +206,6 @@ class TicketStorage:
 
         # Auto-commit with create-specific message (only in worktree mode)
         if self.use_worktree and self.config.git_auto_commit:
-            from bodega.worktree import auto_commit_ticket
             auto_commit_ticket(
                 self.worktree_path,
                 path,
@@ -236,7 +235,6 @@ class TicketStorage:
 
         # Auto-commit deletion (only in worktree mode)
         if self.use_worktree and self.config.git_auto_commit:
-            from bodega.worktree import auto_commit_ticket
             auto_commit_ticket(
                 self.worktree_path,
                 path,

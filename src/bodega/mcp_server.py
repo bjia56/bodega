@@ -19,11 +19,11 @@ from bodega.operations import (
     start_ticket,
     close_ticket,
     add_note,
-    edit_ticket,
     add_dependency,
 )
-from bodega.output import ticket_to_dict
+from bodega.output import ticket_to_dict, format_ticket_detail
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
+from bodega.models.ticket import TicketStatus
 
 
 # ============================================================================
@@ -70,8 +70,6 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
     ) -> str:
         """Query tickets as JSON for programmatic access."""
         try:
-            from bodega.models.ticket import TicketStatus
-
             status_filter = TicketStatus(status) if status else None
             result = query_tickets(
                 storage,
@@ -238,7 +236,6 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
         """Display detailed ticket information in formatted text."""
         try:
             ticket = query_tickets(storage, ticket_id=ticket_id)
-            from bodega.output import format_ticket_detail
             return format_ticket_detail(ticket, config)
 
         except TicketNotFoundError as e:

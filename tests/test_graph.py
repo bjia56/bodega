@@ -3,7 +3,7 @@
 import pytest
 
 from bodega.graph import DependencyGraph
-from bodega.models.ticket import Ticket, TicketStatus, TicketType
+from bodega.models.ticket import Ticket, TicketStatus
 
 
 # ============================================================================

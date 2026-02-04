@@ -2,7 +2,6 @@
 
 import pytest
 import json
-import os
 
 from bodega.output import (
     Colors,

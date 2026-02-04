@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime, UTC
 from enum import Enum
 import frontmatter
+
 from bodega.models import Ticket, TicketType, TicketStatus
 
 

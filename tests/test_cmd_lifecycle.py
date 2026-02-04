@@ -1,5 +1,7 @@
 """Tests for lifecycle commands (start, close, reopen, status)."""
 
+import json
+
 from bodega.cli import main
 
 
@@ -102,7 +104,6 @@ def test_start_with_assignee(runner, temp_repo_with_ticket):
 
     # Verify assignee was set
     result = runner.invoke(main, ["show", "--json", ticket_id])
-    import json
     data = json.loads(result.output)
     assert data["assignee"] == "John Doe"
     assert data["status"] == "in-progress"
@@ -123,7 +124,6 @@ def test_start_updates_assignee_on_already_in_progress(runner, temp_repo_with_ti
 
     # Verify assignee was updated
     result = runner.invoke(main, ["show", "--json", ticket_id])
-    import json
     data = json.loads(result.output)
     assert data["assignee"] == "Jane Smith"
     assert data["status"] == "in-progress"
@@ -139,7 +139,6 @@ def test_start_with_assignee_long_flag(runner, temp_repo_with_ticket):
 
     # Verify assignee was set
     result = runner.invoke(main, ["show", "--json", ticket_id])
-    import json
     data = json.loads(result.output)
     assert data["assignee"] == "Alice"
 
@@ -463,7 +462,6 @@ def test_lifecycle_updates_timestamp(runner, temp_repo_with_ticket):
 
     # Get initial state
     result = runner.invoke(main, ["show", "--json", ticket_id])
-    import json
     initial_data = json.loads(result.output)
     initial_updated = initial_data["updated"]
 
@@ -525,7 +523,6 @@ def test_lifecycle_preserves_other_fields(runner, temp_repo):
 
     # Verify metadata is preserved
     result = runner.invoke(main, ["show", "--json", ticket_id])
-    import json
     data = json.loads(result.output)
 
     assert data["type"] == "bug"

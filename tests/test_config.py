@@ -1,11 +1,10 @@
-import pytest
-from pathlib import Path
+import yaml
+
 from bodega.config import (
     BodegaConfig,
     load_config,
     write_default_config,
     validate_config,
-    GLOBAL_CONFIG_PATH,
     DEFAULT_CONFIG_TEMPLATE,
 )
 
@@ -171,13 +170,7 @@ def test_load_config_finds_bodega_dir(tmp_path, monkeypatch):
     subdir.mkdir(parents=True)
 
     # Mock the current directory search
-    import bodega.utils
-    original_find = bodega.utils.find_bodega_dir
-
-    def mock_find(start=None):
-        return bodega_dir
-
-    monkeypatch.setattr("bodega.utils.find_bodega_dir", mock_find)
+    monkeypatch.chdir(subdir)
     monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
 
     config = load_config()
@@ -226,7 +219,6 @@ def test_write_default_config(tmp_path, runner):
         assert content == DEFAULT_CONFIG_TEMPLATE
 
         # Should be valid YAML
-        import yaml
         data = yaml.safe_load(content)
         assert "defaults" in data
         assert data["defaults"]["type"] == "task"

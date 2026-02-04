@@ -2,6 +2,7 @@
 
 import click
 from pathlib import Path
+import yaml
 
 from bodega.storage import init_repository, StorageError
 from bodega.commands.utils import pass_context, Context
@@ -101,7 +102,6 @@ def init(ctx: Context, reset: bool, branch: str | None, path: str | None):
             # Update config with branch name
             config_path = bodega_dir / "config.yaml"
             if config_path.exists():
-                import yaml
                 with open(config_path, 'r') as f:
                     config_data = yaml.safe_load(f) or {}
 
@@ -128,7 +128,6 @@ def init(ctx: Context, reset: bool, branch: str | None, path: str | None):
             # Update config to set empty branch
             config_path = bodega_dir / "config.yaml"
             if config_path.exists():
-                import yaml
                 with open(config_path, 'r') as f:
                     config_data = yaml.safe_load(f) or {}
 

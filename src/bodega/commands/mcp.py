@@ -3,6 +3,7 @@
 import click
 
 from bodega.commands.utils import pass_context, Context, require_repo
+from bodega.mcp_server import run_stdio_server, run_http_server
 
 
 @click.group()
@@ -39,7 +40,6 @@ def stdio(ctx: Context):
     config = ctx.config
 
     try:
-        from bodega.mcp_server import run_stdio_server
         run_stdio_server(storage, config)
     except KeyboardInterrupt:
         pass
@@ -73,7 +73,6 @@ def http(ctx: Context, host: str, port: int):
     config = ctx.config
 
     try:
-        from bodega.mcp_server import run_http_server
         click.echo(f"Starting MCP server on http://{host}:{port}")
         click.echo("Press Ctrl+C to stop")
         run_http_server(storage, config, host, port)

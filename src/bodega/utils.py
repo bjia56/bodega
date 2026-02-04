@@ -4,7 +4,7 @@ import uuid
 import subprocess
 import re
 from typing import Optional
-from datetime import datetime, timezone, UTC, timedelta
+from datetime import datetime, UTC, timedelta
 from pathlib import Path
 
 from bodega.errors import TicketNotFoundError, AmbiguousIDError, BodegaError

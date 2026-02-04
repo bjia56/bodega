@@ -11,7 +11,6 @@ from bodega.config import BodegaConfig
 from bodega.models.ticket import Ticket, TicketType, TicketStatus
 from bodega.graph import DependencyGraph
 from bodega.utils import get_git_user, now_utc
-from bodega.errors import TicketNotFoundError, AmbiguousIDError
 
 
 # ============================================================================

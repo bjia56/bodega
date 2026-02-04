@@ -1,8 +1,8 @@
 """Tests for storage module."""
 
 import pytest
-from pathlib import Path
-from datetime import datetime
+import threading
+import time
 
 from bodega.storage import TicketStorage, init_repository
 from bodega.errors import (
@@ -191,7 +191,6 @@ def test_save_ticket_updates_timestamp(storage, sample_ticket):
     original_updated = created.updated
 
     # Wait a tiny bit and save again
-    import time
     time.sleep(0.01)
 
     storage.save(created)
@@ -474,9 +473,6 @@ def test_file_lock_basic(storage, sample_ticket):
 
 def test_file_lock_concurrent_writes(storage, sample_ticket):
     """Test file locking with simulated concurrent writes."""
-    import threading
-    import time
-
     created = storage.create(sample_ticket)
     results = []
     errors = []

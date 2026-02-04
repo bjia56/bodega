@@ -1,12 +1,9 @@
 """Tests for sync command."""
 
-import pytest
 import subprocess
-from pathlib import Path
 
 from bodega.cli import main
 from bodega.storage import init_repository
-from bodega.worktree import init_worktree
 
 
 # ============================================================================

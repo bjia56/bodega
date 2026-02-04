@@ -4,7 +4,7 @@ import click
 from pathlib import Path
 
 from bodega.commands.utils import pass_context, Context
-from bodega.worktree import push_to_remote
+from bodega.worktree import push_to_remote, get_push_status
 from bodega.errors import StorageError
 from bodega.utils import find_repo_root
 
@@ -46,7 +46,6 @@ def push(ctx: Context, dry_run: bool):
     if dry_run:
         try:
             # Just show status
-            from bodega.worktree import get_push_status
             status = get_push_status(
                 Path(repo_root),
                 worktree_path,

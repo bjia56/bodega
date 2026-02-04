@@ -1,10 +1,12 @@
 """Configuration module for bodega settings."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import os
 import yaml
+
+from bodega.utils import find_bodega_dir
 
 
 # ============================================================================
@@ -143,7 +145,6 @@ def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
         _merge_yaml_config(config, GLOBAL_CONFIG_PATH)
 
     # Find and load project config
-    from .utils import find_bodega_dir
     bodega_dir = project_dir or find_bodega_dir()
     if bodega_dir:
         config.bodega_dir = bodega_dir

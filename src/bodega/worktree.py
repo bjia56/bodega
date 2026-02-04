@@ -1,11 +1,14 @@
 """Git worktree management for bodega ticket storage."""
 
+import frontmatter
 import subprocess
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
+import shutil
 
 from bodega.errors import StorageError
+from bodega.utils import find_repo_root
 
 
 @dataclass
@@ -92,8 +95,6 @@ def _generate_batch_commit_message(worktree_path: Path, prefix: str) -> str:
     Returns:
         Multi-line commit message with ticket and file details
     """
-    import frontmatter
-
     # Get list of changed files
     result = _run_git(
         ['git', 'diff', '--cached', '--name-only', '.bodega/'],
@@ -168,8 +169,6 @@ def _detect_ticket_state_change(worktree_path: Path, file_path: str, new_metadat
     Returns:
         State change: "created", "closed", "reopened", "updated", or ""
     """
-    import frontmatter
-
     # Get the old version from git
     result = _run_git(
         ['git', 'show', f'HEAD:{file_path}'],
@@ -312,8 +311,6 @@ def ensure_worktree(bodega_dir: Path, branch_name: str = "bodega") -> Path:
     Raises:
         StorageError: If worktree cannot be created or verified
     """
-    from bodega.utils import find_repo_root
-
     worktree_path = bodega_dir / "worktree"
     worktree_bodega_dir = worktree_path / ".bodega"
 
@@ -617,7 +614,6 @@ def cleanup_worktree(worktree_path: Path, repo_root: Path) -> None:
 
     # Remove directory if still exists
     if worktree_path.exists():
-        import shutil
         shutil.rmtree(worktree_path)
 
 

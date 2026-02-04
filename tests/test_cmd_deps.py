@@ -1,6 +1,5 @@
 """Tests for dependency commands."""
 
-import pytest
 import json
 
 from bodega.cli import main

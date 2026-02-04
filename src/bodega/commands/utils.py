@@ -1,6 +1,7 @@
 import click
 import sys
 from typing import Optional
+import traceback
 
 from bodega.config import BodegaConfig
 from bodega.storage import TicketStorage
@@ -36,7 +37,6 @@ def handle_error(ctx: Context, error: Exception, exit_code: int = 1) -> None:
         exit_code: The exit code to use (default: 1)
     """
     if ctx.debug:
-        import traceback
         click.echo(traceback.format_exc(), err=True)
     else:
         click.echo(f"Error: {error}", err=True)

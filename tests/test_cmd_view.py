@@ -1,13 +1,9 @@
 """Tests for view commands (show, edit, note)."""
 
-import pytest
-from pathlib import Path
 import json
-import os
+import re
 
 from bodega.cli import main
-from bodega.storage import TicketStorage
-from bodega.models.ticket import Ticket, TicketType, TicketStatus
 
 
 # ============================================================================
@@ -171,7 +167,6 @@ def test_note_has_timestamp(runner, temp_repo_with_ticket):
     # Should contain a timestamp pattern (YYYY-MM-DD HH:MM)
     assert "Timestamped note" in result.output
     # Note should be in format: "YYYY-MM-DD HH:MM: Timestamped note"
-    import re
     timestamp_pattern = r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:.*Timestamped note'
     assert re.search(timestamp_pattern, result.output)
 

@@ -2,7 +2,7 @@
 
 import pytest
 import subprocess
-from pathlib import Path
+import shutil
 
 from bodega.worktree import (
     init_worktree,
@@ -134,7 +134,6 @@ def test_ensure_worktree_creates_bodega_dir_if_missing(temp_git_repo):
     init_worktree(temp_git_repo, bodega_dir, "bodega")
 
     # Remove .bodega directory from worktree
-    import shutil
     shutil.rmtree(bodega_dir / "worktree" / ".bodega")
 
     # ensure_worktree should recreate it

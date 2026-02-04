@@ -2,12 +2,12 @@
 
 import click
 from datetime import timedelta
-from pathlib import Path
 
 from bodega.commands.utils import pass_context, Context, require_repo
 from bodega.models.ticket import TicketStatus
 from bodega.utils import now_utc, parse_duration
 from bodega.errors import BodegaError
+from bodega.worktree import has_uncommitted_changes, _run_git, _generate_batch_commit_message
 
 
 @click.command()
@@ -88,8 +88,6 @@ def gc(ctx: Context, age: str, dry_run: bool):
 
     # If in worktree mode, commit the changes
     if storage.use_worktree:
-        from bodega.worktree import has_uncommitted_changes, _run_git, _generate_batch_commit_message
-
         if has_uncommitted_changes(storage.worktree_path, '.bodega'):
             # Stage deletions
             _run_git(['git', 'add', '-A', '.bodega/'], cwd=storage.worktree_path)

@@ -2,12 +2,11 @@
 
 import pytest
 from datetime import timedelta
-from pathlib import Path
 
 from bodega.cli import main
 from bodega.models.ticket import Ticket, TicketStatus
 from bodega.utils import now_utc, parse_duration
-from bodega.errors import BodegaError
+from bodega.errors import BodegaError, TicketNotFoundError
 
 
 # ============================================================================
@@ -141,7 +140,6 @@ def test_gc_deletes_old_tickets(runner, temp_repo, storage):
     assert "Deleted 1 ticket(s)" in result.output
 
     # Verify old closed ticket was deleted
-    from bodega.errors import TicketNotFoundError
     with pytest.raises(TicketNotFoundError):
         storage.get("bg-old123")
 
@@ -173,7 +171,6 @@ def test_gc_custom_age(runner, temp_repo, storage):
     assert result.exit_code == 0
     assert "Deleted 1 ticket(s)" in result.output
 
-    from bodega.errors import TicketNotFoundError
     with pytest.raises(TicketNotFoundError):
         storage.get("bg-test123")
 

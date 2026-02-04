@@ -1,6 +1,7 @@
 """Tests for CLI base structure."""
 
 from pathlib import Path
+import subprocess
 
 from bodega.cli import main
 from bodega import __version__
@@ -372,7 +373,6 @@ def test_init_adopts_cloned_repo_direct_mode(runner):
     """Test that init adopts a cloned repository in direct mode (no worktree)."""
     with runner.isolated_filesystem():
         # Simulate a cloned repository with .bodega and config (direct mode)
-        import subprocess
         subprocess.run(["git", "init"], check=True, capture_output=True)
         subprocess.run(["git", "config", "user.name", "Test User"], check=True, capture_output=True)
         subprocess.run(["git", "config", "user.email", "test@example.com"], check=True, capture_output=True)
@@ -404,7 +404,6 @@ def test_init_adopts_cloned_repo_worktree_mode(runner):
     """Test that init adopts a cloned repository with worktree mode."""
     with runner.isolated_filesystem():
         # Set up git repository
-        import subprocess
         subprocess.run(["git", "init"], check=True, capture_output=True)
         subprocess.run(["git", "checkout", "-b", "main"], check=True, capture_output=True)
         subprocess.run(["git", "config", "user.name", "Test User"], check=True, capture_output=True)

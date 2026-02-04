@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, UTC, timezone, timedelta
+from datetime import datetime, UTC
 from pathlib import Path
 from bodega.utils import (
     generate_id,
@@ -12,7 +12,6 @@ from bodega.utils import (
     get_git_user,
     find_repo_root,
     find_bodega_dir,
-    DEFAULT_PREFIX,
 )
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
 

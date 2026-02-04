@@ -1,8 +1,6 @@
 """Tests for push command."""
 
-import pytest
 import subprocess
-from pathlib import Path
 
 from bodega.cli import main
 from bodega.storage import init_repository
