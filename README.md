@@ -37,12 +37,14 @@ Commands:
   cycle    Detect circular dependencies
   dep      Add a dependency (BLOCKER blocks ID)
   edit     Edit ticket properties or open in $EDITOR
+  gc       Garbage collect (delete) old closed tickets
   howto    Show useful CLI examples for AI agents.
   import   Import tickets from another system
   init     Initialize a new bodega repository
   link     Create a symmetric link between tickets
   list     List tickets with optional filters
   note     Add a timestamped note to a ticket
+  push     Push local bodega branch to remote repository
   query    Output tickets as JSON for scripting
   ready    List tickets that are ready to work on
   reopen   Set ticket status back to open
