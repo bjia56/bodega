@@ -67,18 +67,26 @@ class TicketStorage:
         if not self.config.bodega_dir:
             raise StorageError("Not in a bodega repository. Run 'bodega init' first.")
 
-        # Determine storage mode based on git_branch config
-        if self.config.git_branch:
+        # Determine storage mode based on offline_mode and git_branch config
+        if self.config.offline_mode:
+            # Offline mode - use ~/.bodega/<project>/ store
+            self.tickets_dir = self.config.bodega_dir
+            self.worktree_path = None
+            self.use_worktree = False
+            self.is_offline = True
+        elif self.config.git_branch:
             # Worktree mode - use separate branch for ticket storage
             worktree_bodega_dir = self.config.bodega_dir / "worktree" / ".bodega"
             self.tickets_dir = worktree_bodega_dir
             self.worktree_path = worktree_bodega_dir.parent  # .bodega/worktree/
             self.use_worktree = True
+            self.is_offline = False
         else:
             # Direct mode - store tickets in .bodega/ on current branch
             self.tickets_dir = self.config.bodega_dir
             self.worktree_path = None
             self.use_worktree = False
+            self.is_offline = False
 
     def _ticket_path(self, ticket_id: str) -> Path:
         """
@@ -161,8 +169,8 @@ class TicketStorage:
         with self._file_lock(path):
             path.write_text(content)
 
-        # Auto-commit to bodega branch (only in worktree mode)
-        if self.use_worktree and self.config.git_auto_commit:
+        # Auto-commit to bodega branch (only in worktree mode, not offline)
+        if self.use_worktree and not self.is_offline and self.config.git_auto_commit:
             auto_commit_ticket(
                 self.worktree_path,
                 path,
@@ -204,8 +212,8 @@ class TicketStorage:
         with self._file_lock(path):
             path.write_text(content)
 
-        # Auto-commit with create-specific message (only in worktree mode)
-        if self.use_worktree and self.config.git_auto_commit:
+        # Auto-commit with create-specific message (only in worktree mode, not offline)
+        if self.use_worktree and not self.is_offline and self.config.git_auto_commit:
             auto_commit_ticket(
                 self.worktree_path,
                 path,
@@ -233,8 +241,8 @@ class TicketStorage:
         path = self._ticket_path(full_id)
         path.unlink()
 
-        # Auto-commit deletion (only in worktree mode)
-        if self.use_worktree and self.config.git_auto_commit:
+        # Auto-commit deletion (only in worktree mode, not offline)
+        if self.use_worktree and not self.is_offline and self.config.git_auto_commit:
             auto_commit_ticket(
                 self.worktree_path,
                 path,

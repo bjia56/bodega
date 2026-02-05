@@ -7,17 +7,19 @@ import yaml
 from bodega.storage import init_repository, StorageError
 from bodega.commands.utils import pass_context, Context
 from bodega.worktree import init_worktree, ensure_worktree
-from bodega.utils import find_repo_root
-from bodega.config import load_config
+from bodega.utils import find_repo_root, get_project_identifier
+from bodega.config import load_config, set_offline_store_mapping
 
 
 @click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
 @click.option("--reset", is_flag=True, help="Reset and reinitialize existing repository")
 @click.option("--branch", type=str, default=None, help="Git branch for worktree-based storage (e.g., 'bodega'). If not specified, tickets are stored in current branch.")
+@click.option("--offline", is_flag=True, help="Initialize offline store in ~/.bodega/<project>/")
+@click.option("--name", type=str, default=None, help="Custom name for offline store (used with --offline)")
 @click.argument("path", required=False, type=click.Path())
 @pass_context
-def init(ctx: Context, reset: bool, branch: str | None, path: str | None):
+def init(ctx: Context, reset: bool, branch: str | None, offline: bool, name: str | None, path: str | None):
     """
     Initialize a new bodega repository
 
@@ -25,6 +27,7 @@ def init(ctx: Context, reset: bool, branch: str | None, path: str | None):
 
     By default, tickets are stored in .bodega/ on the current branch.
     Use --branch to enable git worktree mode for separate ticket storage.
+    Use --offline to create a personal offline store in ~/.bodega/<project>/.
 
     When run in a cloned repository with existing .bodega/ directory,
     automatically sets up local worktree based on existing configuration.
@@ -35,10 +38,65 @@ def init(ctx: Context, reset: bool, branch: str | None, path: str | None):
 
         bodega init --branch bodega    # Use worktree on 'bodega' branch
 
+        bodega init --offline          # Create offline store in ~/.bodega/
+
+        bodega init --offline --name my-project  # Offline store with custom name
+
         bodega init ./myproj           # Initialize in specific directory
 
         bodega init --reset            # Reset existing repository
     """
+    # Validate flags
+    if offline and branch:
+        click.echo("Error: Cannot use --offline with --branch", err=True)
+        raise SystemExit(1)
+
+    if name and not offline:
+        click.echo("Warning: --name ignored without --offline", err=True)
+
+    # Handle offline mode initialization
+    if offline:
+        target_path = Path(path) if path else Path.cwd()
+
+        # Get auto-generated identifier for this project
+        auto_identifier = get_project_identifier(target_path)
+
+        # Determine directory name (custom name if provided, else auto-identifier)
+        dir_name = name if name else auto_identifier
+
+        # Create offline store directory
+        offline_store = Path.home() / ".bodega" / dir_name
+        bodega_dir = offline_store / ".bodega"
+
+        try:
+            # Check if offline store already exists
+            if offline_store.exists() and not reset:
+                click.echo(f"Error: Offline store already exists at {offline_store}", err=True)
+                click.echo("Use --reset to reinitialize", err=True)
+                raise SystemExit(1)
+
+            # Initialize offline repository
+            init_repository(offline_store, force=reset)
+            click.echo(f"Initialized offline store at {offline_store}")
+
+            # Register in global config
+            # Always use auto_identifier as key so find_offline_store() can find it
+            friendly_name = name if name else dir_name
+            set_offline_store_mapping(auto_identifier, friendly_name)
+            click.echo(f"Registered offline store: {friendly_name}")
+
+            click.echo("\nOffline mode initialized successfully!")
+            click.echo(f"Tickets will be stored in {offline_store}")
+            click.echo("\nNext steps:")
+            click.echo("  bodega create \"My first ticket\"")
+            click.echo("  bodega list")
+            return
+
+        except StorageError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+
+    # Standard (non-offline) initialization
     target = Path(path) if path else Path.cwd()
     bodega_dir = target / ".bodega"
 
