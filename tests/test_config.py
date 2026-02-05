@@ -445,3 +445,65 @@ def test_id_prefix_derivation_mixed_case(tmp_path, monkeypatch, runner):
 
         # Should derive "myawesomeproject" (all lowercase)
         assert config.id_prefix == "myawesomeproject"
+
+
+# ============================================================================
+# Offline Mode Tests
+# ============================================================================
+
+
+def test_offline_mode_default_values():
+    """Test that offline mode fields have correct default values."""
+    config = BodegaConfig()
+
+    assert config.offline_mode is False
+    assert config.offline_store_path is None
+
+
+def test_offline_mode_detected_under_home_bodega(tmp_path, monkeypatch, runner):
+    """Test that offline mode is detected when bodega_dir is under ~/.bodega/."""
+    with runner.isolated_filesystem():
+        # Create a bodega directory under ~/.bodega/project-name/
+        home_bodega = tmp_path / ".bodega"
+        project_dir = home_bodega / "myproject" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        # Mock Path.home() to return tmp_path
+        monkeypatch.setattr("bodega.config.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should detect offline mode
+        assert config.offline_mode is True
+        assert config.offline_store_path == project_dir
+
+
+def test_offline_mode_not_detected_outside_home_bodega(tmp_path, monkeypatch, runner):
+    """Test that offline mode is not detected for normal project repositories."""
+    with runner.isolated_filesystem():
+        # Create a bodega directory in a regular project location
+        project_dir = tmp_path / "workspace" / "myproject" / ".bodega"
+        project_dir.mkdir(parents=True)
+
+        # Mock Path.home() to something different
+        monkeypatch.setattr("bodega.config.Path.home", lambda: tmp_path / "home")
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config(project_dir)
+
+        # Should NOT detect offline mode
+        assert config.offline_mode is False
+        assert config.offline_store_path is None
+
+
+def test_offline_mode_no_bodega_dir_found(tmp_path, monkeypatch, runner):
+    """Test that offline mode is False when no bodega_dir is found."""
+    with runner.isolated_filesystem():
+        monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+        config = load_config()
+
+        # Should not have offline mode enabled
+        assert config.offline_mode is False
+        assert config.offline_store_path is None
