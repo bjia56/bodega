@@ -330,6 +330,9 @@ def find_offline_store(project_path: Path) -> Optional[Path]:
     ~/.bodega/. This is used as a fallback when no local .bodega/ directory
     is found.
 
+    Checks both the auto-generated identifier path and any custom name
+    registered in the global offline stores mapping.
+
     Args:
         project_path: Path to the project directory (typically cwd or repo root)
 
@@ -343,10 +346,21 @@ def find_offline_store(project_path: Path) -> Optional[Path]:
         None
     """
     try:
+        from bodega.config import get_offline_store_mapping
+
         # Get project identifier
         identifier = get_project_identifier(project_path)
 
-        # Check if offline store exists
+        # First, check if there's a custom name in the mapping
+        mapping = get_offline_store_mapping()
+        if identifier in mapping:
+            # Use the mapped name (could be custom name or same as identifier)
+            mapped_name = mapping[identifier]
+            offline_store = Path.home() / ".bodega" / mapped_name / ".bodega"
+            if offline_store.is_dir():
+                return offline_store
+
+        # Fallback: check using the identifier directly
         offline_store = Path.home() / ".bodega" / identifier / ".bodega"
         if offline_store.is_dir():
             return offline_store
