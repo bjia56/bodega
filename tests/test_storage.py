@@ -529,3 +529,100 @@ def test_ticket_path_method(storage):
 
     assert path.name == "bg-abc123.md"
     assert path.parent == storage.tickets_dir
+
+
+# ============================================================================
+# Offline Mode Tests
+# ============================================================================
+
+def test_storage_offline_mode_detection(tmp_path):
+    """Test that offline mode is detected correctly."""
+    bodega_dir = init_repository(tmp_path)
+    config = BodegaConfig(bodega_dir=bodega_dir, offline_mode=True)
+    storage = TicketStorage(config)
+
+    assert storage.is_offline is True
+    assert storage.use_worktree is False
+    assert storage.worktree_path is None
+    assert storage.tickets_dir == bodega_dir
+
+
+def test_storage_worktree_mode_not_offline(tmp_path):
+    """Test that worktree mode sets is_offline to False."""
+    bodega_dir = init_repository(tmp_path)
+    config = BodegaConfig(bodega_dir=bodega_dir, git_branch="bodega")
+    storage = TicketStorage(config)
+
+    assert storage.is_offline is False
+    assert storage.use_worktree is True
+
+
+def test_storage_direct_mode_not_offline(tmp_path):
+    """Test that direct mode sets is_offline to False."""
+    bodega_dir = init_repository(tmp_path)
+    config = BodegaConfig(bodega_dir=bodega_dir, offline_mode=False)
+    storage = TicketStorage(config)
+
+    assert storage.is_offline is False
+    assert storage.use_worktree is False
+
+
+def test_offline_mode_create_no_git_commit(tmp_path, sample_ticket):
+    """Test that offline mode doesn't trigger git auto-commit on create."""
+    bodega_dir = init_repository(tmp_path)
+    config = BodegaConfig(
+        bodega_dir=bodega_dir,
+        offline_mode=True,
+        git_auto_commit=True  # Even with this enabled, offline should skip
+    )
+    storage = TicketStorage(config)
+
+    # This should succeed without trying to call git operations
+    created = storage.create(sample_ticket)
+    assert created.id.startswith("bg-")
+
+    # Verify ticket was saved
+    path = storage._ticket_path(created.id)
+    assert path.exists()
+
+
+def test_offline_mode_save_no_git_commit(tmp_path, sample_ticket):
+    """Test that offline mode doesn't trigger git auto-commit on save."""
+    bodega_dir = init_repository(tmp_path)
+    config = BodegaConfig(
+        bodega_dir=bodega_dir,
+        offline_mode=True,
+        git_auto_commit=True
+    )
+    storage = TicketStorage(config)
+
+    created = storage.create(sample_ticket)
+    created.title = "Updated title"
+
+    # This should succeed without trying to call git operations
+    storage.save(created)
+
+    # Verify update was saved
+    loaded = storage.get(created.id)
+    assert loaded.title == "Updated title"
+
+
+def test_offline_mode_delete_no_git_commit(tmp_path, sample_ticket):
+    """Test that offline mode doesn't trigger git auto-commit on delete."""
+    bodega_dir = init_repository(tmp_path)
+    config = BodegaConfig(
+        bodega_dir=bodega_dir,
+        offline_mode=True,
+        git_auto_commit=True
+    )
+    storage = TicketStorage(config)
+
+    created = storage.create(sample_ticket)
+    ticket_id = created.id
+
+    # This should succeed without trying to call git operations
+    storage.delete(ticket_id)
+
+    # Verify ticket was deleted
+    with pytest.raises(TicketNotFoundError):
+        storage.get(ticket_id)
