@@ -6,6 +6,9 @@ from bodega.config import (
     write_default_config,
     validate_config,
     DEFAULT_CONFIG_TEMPLATE,
+    get_offline_store_mapping,
+    set_offline_store_mapping,
+    list_offline_stores,
 )
 
 
@@ -507,3 +510,207 @@ def test_offline_mode_no_bodega_dir_found(tmp_path, monkeypatch, runner):
         # Should not have offline mode enabled
         assert config.offline_mode is False
         assert config.offline_store_path is None
+
+
+# ============================================================================
+# Offline Store Mapping Tests
+# ============================================================================
+
+
+def test_get_offline_store_mapping_no_config(tmp_path, monkeypatch):
+    """Test getting offline store mapping when no config exists."""
+    # Point to non-existent config file
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent" / "config.yaml")
+
+    mapping = get_offline_store_mapping()
+
+    assert mapping == {}
+
+
+def test_get_offline_store_mapping_empty_config(tmp_path, monkeypatch):
+    """Test getting offline store mapping from empty config."""
+    # Create empty config
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    mapping = get_offline_store_mapping()
+
+    assert mapping == {}
+
+
+def test_get_offline_store_mapping_no_stores_section(tmp_path, monkeypatch):
+    """Test getting offline store mapping when config has no offline_stores section."""
+    # Create config without offline_stores
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("id_prefix: bg\n")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    mapping = get_offline_store_mapping()
+
+    assert mapping == {}
+
+
+def test_get_offline_store_mapping_with_stores(tmp_path, monkeypatch):
+    """Test getting offline store mapping with existing stores."""
+    # Create config with offline_stores
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+offline_stores:
+  git-a1b2c3d4e5f6: my-project
+  path-9f8e7d6c5b4a: personal-tasks
+""")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    mapping = get_offline_store_mapping()
+
+    assert mapping == {
+        "git-a1b2c3d4e5f6": "my-project",
+        "path-9f8e7d6c5b4a": "personal-tasks"
+    }
+
+
+def test_set_offline_store_mapping_new_config(tmp_path, monkeypatch):
+    """Test setting offline store mapping creates new config if it doesn't exist."""
+    config_file = tmp_path / ".bodega" / "config.yaml"
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    set_offline_store_mapping("git-abc123", "test-project")
+
+    # Verify file was created
+    assert config_file.exists()
+
+    # Verify content
+    with open(config_file) as f:
+        data = yaml.safe_load(f)
+
+    assert data["offline_stores"]["git-abc123"] == "test-project"
+
+
+def test_set_offline_store_mapping_existing_config(tmp_path, monkeypatch):
+    """Test setting offline store mapping preserves existing config."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+id_prefix: custom
+defaults:
+  type: bug
+""")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    set_offline_store_mapping("git-def456", "another-project")
+
+    # Verify content was preserved and mapping added
+    with open(config_file) as f:
+        data = yaml.safe_load(f)
+
+    assert data["id_prefix"] == "custom"
+    assert data["defaults"]["type"] == "bug"
+    assert data["offline_stores"]["git-def456"] == "another-project"
+
+
+def test_set_offline_store_mapping_update_existing(tmp_path, monkeypatch):
+    """Test updating an existing offline store mapping."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+offline_stores:
+  git-abc123: old-name
+""")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    set_offline_store_mapping("git-abc123", "new-name")
+
+    # Verify mapping was updated
+    with open(config_file) as f:
+        data = yaml.safe_load(f)
+
+    assert data["offline_stores"]["git-abc123"] == "new-name"
+
+
+def test_set_offline_store_mapping_add_to_existing_stores(tmp_path, monkeypatch):
+    """Test adding a new mapping to existing offline_stores section."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+offline_stores:
+  git-existing: existing-project
+""")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+
+    set_offline_store_mapping("git-new", "new-project")
+
+    # Verify both mappings exist
+    with open(config_file) as f:
+        data = yaml.safe_load(f)
+
+    assert data["offline_stores"]["git-existing"] == "existing-project"
+    assert data["offline_stores"]["git-new"] == "new-project"
+
+
+def test_list_offline_stores_empty(tmp_path, monkeypatch):
+    """Test listing offline stores when none exist."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+    monkeypatch.setattr("bodega.config.Path.home", lambda: tmp_path)
+
+    stores = list_offline_stores()
+
+    assert stores == []
+
+
+def test_list_offline_stores_with_stores(tmp_path, monkeypatch):
+    """Test listing offline stores returns correct metadata."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+offline_stores:
+  git-abc123: my-project
+  path-def456: another-project
+""")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+    monkeypatch.setattr("bodega.config.Path.home", lambda: tmp_path)
+
+    stores = list_offline_stores()
+
+    # Should return list of tuples
+    assert len(stores) == 2
+
+    # Check first store
+    identifier1, name1, path1 = stores[0]
+    assert identifier1 == "git-abc123"
+    assert name1 == "my-project"
+    assert path1 == tmp_path / ".bodega" / "git-abc123"
+
+    # Check second store
+    identifier2, name2, path2 = stores[1]
+    assert identifier2 == "path-def456"
+    assert name2 == "another-project"
+    assert path2 == tmp_path / ".bodega" / "path-def456"
+
+
+def test_list_offline_stores_paths_regardless_of_existence(tmp_path, monkeypatch):
+    """Test that list_offline_stores returns paths even if directories don't exist."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+offline_stores:
+  git-abc123: my-project
+""")
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", config_file)
+    monkeypatch.setattr("bodega.config.Path.home", lambda: tmp_path)
+
+    stores = list_offline_stores()
+
+    assert len(stores) == 1
+    identifier, name, path = stores[0]
+
+    # Path should be returned even though it doesn't exist
+    assert path == tmp_path / ".bodega" / "git-abc123"
+    assert not path.exists()

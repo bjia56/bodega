@@ -274,3 +274,79 @@ def validate_config(config: BodegaConfig) -> list[str]:
         errors.append(f"Invalid list_format: {config.list_format}")
 
     return errors
+
+
+# ============================================================================
+# Offline Store Mapping
+# ============================================================================
+
+def get_offline_store_mapping() -> dict[str, str]:
+    """
+    Load offline stores mapping from global config.
+
+    Returns mapping of project identifiers to friendly names.
+
+    Returns:
+        Dictionary mapping identifier to name (e.g., {'git-a1b2c3': 'my-project'})
+        Returns empty dict if no mapping exists.
+    """
+    if not GLOBAL_CONFIG_PATH.exists():
+        return {}
+
+    with open(GLOBAL_CONFIG_PATH) as f:
+        data = yaml.safe_load(f) or {}
+
+    return data.get("offline_stores", {}) or {}
+
+
+def set_offline_store_mapping(identifier: str, name: str) -> None:
+    """
+    Add or update an offline store mapping in global config.
+
+    Creates ~/.bodega/config.yaml if it doesn't exist.
+    Preserves existing configuration settings.
+
+    Args:
+        identifier: Project identifier (e.g., 'git-a1b2c3d4e5f6')
+        name: Friendly name for the offline store (e.g., 'my-project')
+    """
+    # Load existing config or create empty dict
+    if GLOBAL_CONFIG_PATH.exists():
+        with open(GLOBAL_CONFIG_PATH) as f:
+            data = yaml.safe_load(f) or {}
+    else:
+        data = {}
+
+    # Ensure offline_stores section exists
+    if "offline_stores" not in data:
+        data["offline_stores"] = {}
+
+    # Add/update mapping
+    data["offline_stores"][identifier] = name
+
+    # Write back to file
+    GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(GLOBAL_CONFIG_PATH, "w") as f:
+        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+
+
+def list_offline_stores() -> list[tuple[str, str, Path]]:
+    """
+    List all offline stores with their metadata.
+
+    Returns list of (identifier, name, path) tuples for all offline stores.
+    Includes existence check for each store.
+
+    Returns:
+        List of tuples (identifier, name, path) for each offline store.
+        Path points to ~/.bodega/<identifier>/ regardless of existence.
+    """
+    mapping = get_offline_store_mapping()
+    home_bodega = Path.home() / ".bodega"
+
+    stores = []
+    for identifier, name in mapping.items():
+        store_path = home_bodega / identifier
+        stores.append((identifier, name, store_path))
+
+    return stores
