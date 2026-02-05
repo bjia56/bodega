@@ -184,7 +184,7 @@ def note(ctx: Context, ticket_id: str, text: str):
 
         bodega note bg-a1b2c3 "Blocked waiting for API spec"
 
-        bodega note a1b "Discussed with team, moving forward"
+        bodega note bg-a1b "Discussed with team, moving forward"
     """
     storage = require_repo(ctx)
 

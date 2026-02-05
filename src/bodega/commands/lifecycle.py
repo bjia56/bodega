@@ -63,7 +63,7 @@ def close(ctx: Context, ticket_id: str):
 
         bodega close bg-a1b2c3
 
-        bodega close a1b
+        bodega close bg-a1b  # Partial ID
     """
     storage = require_repo(ctx)
 
@@ -98,6 +98,8 @@ def reopen(ctx: Context, ticket_id: str):
     Examples:
 
         bodega reopen bg-a1b2c3
+
+        bodega reopen bg-a1b  # Partial ID
     """
     storage = require_repo(ctx)
 
@@ -132,6 +134,8 @@ def status(ctx: Context, ticket_id: str):
     Examples:
 
         bodega status bg-a1b2c3
+
+        bodega status bg-a1b  # Partial ID
     """
     storage = require_repo(ctx)
 

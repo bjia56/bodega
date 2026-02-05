@@ -3,6 +3,7 @@
 import uuid
 import subprocess
 import re
+import hashlib
 from typing import Optional
 from datetime import datetime, UTC, timedelta
 from pathlib import Path
@@ -47,7 +48,7 @@ def is_valid_id(id_str: str) -> bool:
         id_str: The string to validate
 
     Returns:
-        True if the string matches the pattern ^[a-z][a-z0-9]*-[a-z0-9\.]+$
+        True if the string matches the pattern ^[a-z][a-z0-9]*-[a-z0-9\\.]+$
     """
     return bool(id_pattern.match(id_str))
 
@@ -235,6 +236,84 @@ def find_repo_root() -> Optional[str]:
         return result.stdout.strip()
     except subprocess.CalledProcessError:
         return None
+
+
+def get_git_remote_url(repo_path: Path) -> Optional[str]:
+    """
+    Get git remote origin URL for a repository.
+
+    Safely retrieves the git remote origin URL from the specified repository
+    path. Returns None if the path is not a git repository, has no remote
+    configured, or if any errors occur.
+
+    Args:
+        repo_path: Path to the repository to check
+
+    Returns:
+        The git remote origin URL, or None if not found or on error
+
+    Examples:
+        >>> get_git_remote_url(Path("/path/to/repo"))
+        'https://github.com/user/repo.git'
+        >>> get_git_remote_url(Path("/not/a/repo"))
+        None
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "config", "--get", "remote.origin.url"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5
+        )
+        return result.stdout.strip() or None
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        return None
+
+
+def get_project_identifier(path: Path) -> str:
+    """
+    Generate a unique project identifier for offline mode.
+
+    The identifier is used as the directory name for offline ticket storage in
+    ~/.bodega/<identifier>/. The function tries to create a stable identifier
+    based on the git remote URL (if available), falling back to the absolute
+    path if not in a git repository or if no remote is configured.
+
+    Strategy:
+    1. If git remote URL exists: hash it → "git-{first 12 chars of sha256}"
+    2. Otherwise: hash absolute path → "path-{first 12 chars of sha256}"
+
+    The identifier is sanitized to be filesystem-safe (lowercase, alphanumeric
+    plus dash only).
+
+    Args:
+        path: Path to the project directory (typically the repo root or cwd)
+
+    Returns:
+        A sanitized identifier safe for use as a directory name
+        Format: "git-{hash}" or "path-{hash}" where hash is 12 hex characters
+
+    Examples:
+        >>> get_project_identifier(Path("/path/to/git/repo"))
+        'git-a1b2c3d4e5f6'
+        >>> get_project_identifier(Path("/path/to/project"))
+        'path-9f8e7d6c5b4a'
+    """
+    # Try to get git remote URL
+    remote_url = get_git_remote_url(path)
+
+    if remote_url:
+        # Hash the git remote URL
+        hash_input = remote_url.encode('utf-8')
+        hash_hex = hashlib.sha256(hash_input).hexdigest()[:12]
+        return f"git-{hash_hex}"
+    else:
+        # Fallback to hashing the absolute path
+        abs_path = path.resolve()
+        hash_input = str(abs_path).encode('utf-8')
+        hash_hex = hashlib.sha256(hash_input).hexdigest()[:12]
+        return f"path-{hash_hex}"
 
 
 # ============================================================================

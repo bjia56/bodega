@@ -82,6 +82,10 @@ class BodegaConfig:
     # Paths (computed, not from config file)
     bodega_dir: Optional[Path] = None
 
+    # Offline mode settings
+    offline_mode: bool = False  # True if using offline store
+    offline_store_path: Optional[Path] = None  # Path to offline store if active
+
     # Internal tracking (not from config file)
     _id_prefix_was_set: bool = False
 
@@ -151,6 +155,17 @@ def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
         project_config = bodega_dir / "config.yaml"
         if project_config.exists():
             _merge_yaml_config(config, project_config)
+
+        # Check if bodega_dir is under ~/.bodega/ (offline mode)
+        home_bodega = Path.home() / ".bodega"
+        try:
+            # Check if bodega_dir is relative to ~/.bodega/
+            bodega_dir.relative_to(home_bodega)
+            config.offline_mode = True
+            config.offline_store_path = bodega_dir
+        except ValueError:
+            # bodega_dir is not under ~/.bodega/, so not offline mode
+            pass
 
     # Apply environment variables (highest precedence)
     _apply_env_vars(config)

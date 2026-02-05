@@ -158,19 +158,35 @@ class Ticket:
         # Extract content sections from the content string
         content = data.get("content", "")
         if content:
-            # Parse content sections
+            # Parse content sections - recognized headers act as section boundaries
+            # Everything under a section (including sub-headings) belongs to that section
+            # until the next recognized section header appears
+            RECOGNIZED_SECTIONS = {
+                "description": "description",
+                "design": "design",
+                "acceptance_criteria": "acceptance_criteria",
+                "notes": "notes",
+            }
+
             sections = {}
             current_section = None
             current_content = []
 
             for line in content.split("\n"):
                 if line.startswith("## "):
-                    # Save previous section
-                    if current_section:
-                        sections[current_section] = "\n".join(current_content).strip()
-                    # Start new section
-                    current_section = line[3:].strip().lower().replace(" ", "_")
-                    current_content = []
+                    # Check if this is a recognized section header
+                    heading = line[3:].strip().lower().replace(" ", "_")
+
+                    if heading in RECOGNIZED_SECTIONS:
+                        # Save previous section
+                        if current_section:
+                            sections[current_section] = "\n".join(current_content).strip()
+                        # Start new recognized section
+                        current_section = RECOGNIZED_SECTIONS[heading]
+                        current_content = []
+                    elif current_section:
+                        # Unrecognized heading - include it in current section content
+                        current_content.append(line)
                 elif current_section:
                     current_content.append(line)
 
