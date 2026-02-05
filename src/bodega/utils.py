@@ -321,30 +321,83 @@ def get_project_identifier(path: Path) -> str:
 # ============================================================================
 
 
+def find_offline_store(project_path: Path) -> Optional[Path]:
+    """
+    Find offline ticket store for a project in ~/.bodega/<identifier>/.
+
+    Attempts to locate an offline ticket store by generating a project
+    identifier and checking if the corresponding directory exists under
+    ~/.bodega/. This is used as a fallback when no local .bodega/ directory
+    is found.
+
+    Args:
+        project_path: Path to the project directory (typically cwd or repo root)
+
+    Returns:
+        Path to .bodega directory in offline store, or None if not found
+
+    Examples:
+        >>> find_offline_store(Path("/path/to/project"))
+        Path("/home/user/.bodega/git-a1b2c3d4e5f6/.bodega")
+        >>> find_offline_store(Path("/nonexistent"))
+        None
+    """
+    try:
+        # Get project identifier
+        identifier = get_project_identifier(project_path)
+
+        # Check if offline store exists
+        offline_store = Path.home() / ".bodega" / identifier / ".bodega"
+        if offline_store.is_dir():
+            return offline_store
+
+        return None
+    except Exception:
+        # Return None on any errors (e.g., permission issues, path problems)
+        return None
+
+
 def find_bodega_dir(start: Optional[Path] = None) -> Optional[Path]:
     """
-    Find .bodega directory by searching up from start dir.
+    Find .bodega directory by searching up from start dir, with offline fallback.
 
-    Similar to how git finds .git directory.
+    Searches for a local .bodega directory by walking up the directory tree
+    from the start directory (similar to how git finds .git). If no local
+    directory is found, falls back to checking for an offline store in
+    ~/.bodega/<identifier>/.
+
+    Precedence:
+    1. Local .bodega/ directory (searched upwards from start, excluding ~/.bodega itself)
+    2. Offline store at ~/.bodega/<identifier>/.bodega/
+    3. None if neither exists
 
     Args:
         start: The directory to start searching from (default: current working directory)
 
     Returns:
-        The path to the .bodega directory, or None if not found
+        The path to the .bodega directory (local or offline), or None if not found
     """
     start = start or Path.cwd()
     current = start.resolve()
+    home_bodega = Path.home() / ".bodega"
 
+    # First, search up for local .bodega directory
     while current != current.parent:
         bodega_dir = current / ".bodega"
-        if bodega_dir.is_dir():
+        # Skip ~/.bodega itself - it's not a valid ticket store
+        # Only ~/.bodega/<identifier>/.bodega is valid for offline mode
+        if bodega_dir.is_dir() and bodega_dir != home_bodega:
             return bodega_dir
         current = current.parent
 
     # Check root
     bodega_dir = current / ".bodega"
-    if bodega_dir.is_dir():
+    if bodega_dir.is_dir() and bodega_dir != home_bodega:
         return bodega_dir
+
+    # If no local .bodega found, check for offline store
+    offline_store = find_offline_store(start)
+    if offline_store:
+        return offline_store
 
     return None

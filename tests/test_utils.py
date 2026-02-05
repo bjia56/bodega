@@ -1,4 +1,5 @@
 import pytest
+import subprocess
 from datetime import datetime, UTC
 from pathlib import Path
 from bodega.utils import (
@@ -14,6 +15,7 @@ from bodega.utils import (
     find_bodega_dir,
     get_git_remote_url,
     get_project_identifier,
+    find_offline_store,
 )
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
 
@@ -343,8 +345,6 @@ def test_find_bodega_dir_default_start():
 
 def test_get_git_remote_url_with_git(tmp_path):
     """Test getting git remote URL from a git repository with remote."""
-    import subprocess
-
     # Create a git repo with remote
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -363,8 +363,6 @@ def test_get_git_remote_url_with_git(tmp_path):
 
 def test_get_git_remote_url_no_remote(tmp_path):
     """Test getting git remote URL from a git repository without remote."""
-    import subprocess
-
     # Create a git repo without remote
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -395,8 +393,6 @@ def test_get_git_remote_url_nonexistent_path(tmp_path):
 
 def test_get_project_identifier_with_git_remote(tmp_path):
     """Test project identifier generation for git repo with remote."""
-    import subprocess
-
     # Create a git repo with remote
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -437,8 +433,6 @@ def test_get_project_identifier_without_git(tmp_path):
 
 def test_get_project_identifier_stability_with_git(tmp_path):
     """Test that project identifier is stable for same git remote."""
-    import subprocess
-
     # Create a git repo with remote
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -475,8 +469,6 @@ def test_get_project_identifier_stability_without_git(tmp_path):
 
 def test_get_project_identifier_different_for_different_repos(tmp_path):
     """Test that different projects get different identifiers."""
-    import subprocess
-
     # Create two git repos with different remotes
     repo1 = tmp_path / "repo1"
     repo1.mkdir()
@@ -525,3 +517,217 @@ def test_get_project_identifier_different_paths(tmp_path):
     # Both should start with "path-"
     assert id1.startswith("path-")
     assert id2.startswith("path-")
+
+
+# ============================================================================
+# Offline Store Discovery Tests
+# ============================================================================
+
+
+def test_find_offline_store_exists(tmp_path, monkeypatch):
+    """Test finding an existing offline store."""
+    # Create a project directory
+    project = tmp_path / "project"
+    project.mkdir()
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Get the identifier and create offline store
+    identifier = get_project_identifier(project)
+    offline_store = home / ".bodega" / identifier / ".bodega"
+    offline_store.mkdir(parents=True)
+
+    # Should find the offline store
+    found = find_offline_store(project)
+    assert found == offline_store
+
+
+def test_find_offline_store_not_exists(tmp_path, monkeypatch):
+    """Test when offline store doesn't exist."""
+    # Create a project directory
+    project = tmp_path / "project"
+    project.mkdir()
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Don't create offline store
+
+    # Should return None
+    found = find_offline_store(project)
+    assert found is None
+
+
+def test_find_offline_store_with_git_repo(tmp_path, monkeypatch):
+    """Test finding offline store for git repo."""
+    # Create a git repo with remote
+    project = tmp_path / "project"
+    project.mkdir()
+
+    subprocess.run(["git", "init"], cwd=project, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.com/user/project.git"],
+        cwd=project,
+        check=True,
+        capture_output=True
+    )
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Create offline store based on git identifier
+    identifier = get_project_identifier(project)
+    offline_store = home / ".bodega" / identifier / ".bodega"
+    offline_store.mkdir(parents=True)
+
+    # Should find the offline store
+    found = find_offline_store(project)
+    assert found == offline_store
+    # Should be based on git remote, not path
+    assert identifier.startswith("git-")
+
+
+def test_find_bodega_dir_with_offline_fallback(tmp_path, monkeypatch):
+    """Test find_bodega_dir falls back to offline store when no local .bodega."""
+    # Create a project directory without local .bodega
+    project = tmp_path / "project"
+    project.mkdir()
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Create offline store
+    identifier = get_project_identifier(project)
+    offline_store = home / ".bodega" / identifier / ".bodega"
+    offline_store.mkdir(parents=True)
+
+    # Should find offline store as fallback
+    found = find_bodega_dir(project)
+    assert found == offline_store
+
+
+def test_find_bodega_dir_local_takes_precedence(tmp_path, monkeypatch):
+    """Test that local .bodega takes precedence over offline store."""
+    # Create a project directory with local .bodega
+    project = tmp_path / "project"
+    project.mkdir()
+    local_bodega = project / ".bodega"
+    local_bodega.mkdir()
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Create offline store too
+    identifier = get_project_identifier(project)
+    offline_store = home / ".bodega" / identifier / ".bodega"
+    offline_store.mkdir(parents=True)
+
+    # Should find local .bodega, not offline store
+    found = find_bodega_dir(project)
+    assert found == local_bodega
+    assert found != offline_store
+
+
+def test_find_bodega_dir_returns_none_when_neither_exists(tmp_path, monkeypatch):
+    """Test that find_bodega_dir returns None when neither local nor offline exists."""
+    # Create a project directory without any .bodega
+    project = tmp_path / "project"
+    project.mkdir()
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Don't create any .bodega directories
+
+    # Should return None
+    found = find_bodega_dir(project)
+    assert found is None
+
+
+def test_find_bodega_dir_searches_upward_before_offline(tmp_path, monkeypatch):
+    """Test that find_bodega_dir searches upward before checking offline."""
+    # Create parent directory with .bodega
+    parent = tmp_path / "workspace"
+    parent.mkdir()
+    parent_bodega = parent / ".bodega"
+    parent_bodega.mkdir()
+
+    # Create nested project directory
+    project = parent / "myproject" / "src"
+    project.mkdir(parents=True)
+
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Create offline store for the nested path
+    identifier = get_project_identifier(project)
+    offline_store = home / ".bodega" / identifier / ".bodega"
+    offline_store.mkdir(parents=True)
+
+    # Should find parent's .bodega, not offline store
+    found = find_bodega_dir(project)
+    assert found == parent_bodega
+    assert found != offline_store
+
+
+def test_find_bodega_dir_skips_home_bodega_itself(tmp_path, monkeypatch):
+    """Test that ~/.bodega itself is skipped during upward search."""
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Create ~/.bodega directory (but not a valid store inside it)
+    home_bodega = home / ".bodega"
+    home_bodega.mkdir()
+
+    # Create a project directory inside ~/.bodega
+    project = home_bodega / "some-identifier"
+    project.mkdir()
+
+    # Create the actual offline store
+    offline_store = project / ".bodega"
+    offline_store.mkdir()
+
+    # When searching from inside the offline store, should find the offline store
+    # not skip to ~/.bodega itself
+    found = find_bodega_dir(project)
+    assert found == offline_store
+    assert found != home_bodega
+
+
+def test_find_bodega_dir_from_inside_offline_store(tmp_path, monkeypatch):
+    """Test find_bodega_dir when called from inside an offline store."""
+    # Mock home directory
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr("bodega.utils.Path.home", lambda: home)
+
+    # Create a real project elsewhere to get a proper identifier
+    real_project = tmp_path / "workspace" / "myproject"
+    real_project.mkdir(parents=True)
+
+    # Create offline store for that project
+    identifier = get_project_identifier(real_project)
+    offline_store = home / ".bodega" / identifier / ".bodega"
+    offline_store.mkdir(parents=True)
+
+    # Call find_bodega_dir from inside the offline store
+    # Should find the offline store, not ~/.bodega
+    found = find_bodega_dir(offline_store)
+    assert found == offline_store
