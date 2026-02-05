@@ -12,6 +12,8 @@ from bodega.utils import (
     get_git_user,
     find_repo_root,
     find_bodega_dir,
+    get_git_remote_url,
+    get_project_identifier,
 )
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
 
@@ -332,3 +334,194 @@ def test_find_bodega_dir_default_start():
 
     # Should either find it or return None
     assert found is None or isinstance(found, Path)
+
+
+# ============================================================================
+# Project Identifier Tests
+# ============================================================================
+
+
+def test_get_git_remote_url_with_git(tmp_path):
+    """Test getting git remote URL from a git repository with remote."""
+    import subprocess
+
+    # Create a git repo with remote
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.com/user/repo.git"],
+        cwd=repo,
+        check=True,
+        capture_output=True
+    )
+
+    url = get_git_remote_url(repo)
+    assert url == "https://github.com/user/repo.git"
+
+
+def test_get_git_remote_url_no_remote(tmp_path):
+    """Test getting git remote URL from a git repository without remote."""
+    import subprocess
+
+    # Create a git repo without remote
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+
+    url = get_git_remote_url(repo)
+    assert url is None
+
+
+def test_get_git_remote_url_not_git_repo(tmp_path):
+    """Test getting git remote URL from a non-git directory."""
+    # Create a regular directory
+    repo = tmp_path / "not-a-repo"
+    repo.mkdir()
+
+    url = get_git_remote_url(repo)
+    assert url is None
+
+
+def test_get_git_remote_url_nonexistent_path(tmp_path):
+    """Test getting git remote URL from a nonexistent path."""
+    nonexistent = tmp_path / "does-not-exist"
+
+    url = get_git_remote_url(nonexistent)
+    assert url is None
+
+
+def test_get_project_identifier_with_git_remote(tmp_path):
+    """Test project identifier generation for git repo with remote."""
+    import subprocess
+
+    # Create a git repo with remote
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.com/user/myproject.git"],
+        cwd=repo,
+        check=True,
+        capture_output=True
+    )
+
+    identifier = get_project_identifier(repo)
+
+    # Should start with "git-"
+    assert identifier.startswith("git-")
+    # Should be "git-" + 12 hex chars
+    assert len(identifier) == 16  # "git-" (4) + 12 hex chars
+    # Should be lowercase alphanumeric + dash
+    assert identifier.replace("-", "").replace("git", "").isalnum()
+
+
+def test_get_project_identifier_without_git(tmp_path):
+    """Test project identifier generation for non-git directory."""
+    # Create a regular directory
+    repo = tmp_path / "project"
+    repo.mkdir()
+
+    identifier = get_project_identifier(repo)
+
+    # Should start with "path-"
+    assert identifier.startswith("path-")
+    # Should be "path-" + 12 hex chars
+    assert len(identifier) == 17  # "path-" (5) + 12 hex chars
+    # Should be lowercase alphanumeric + dash
+    assert identifier.replace("-", "").replace("path", "").isalnum()
+
+
+def test_get_project_identifier_stability_with_git(tmp_path):
+    """Test that project identifier is stable for same git remote."""
+    import subprocess
+
+    # Create a git repo with remote
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.com/user/stable.git"],
+        cwd=repo,
+        check=True,
+        capture_output=True
+    )
+
+    # Should get same identifier multiple times
+    id1 = get_project_identifier(repo)
+    id2 = get_project_identifier(repo)
+    id3 = get_project_identifier(repo)
+
+    assert id1 == id2 == id3
+
+
+def test_get_project_identifier_stability_without_git(tmp_path):
+    """Test that project identifier is stable for same path."""
+    # Create a regular directory
+    repo = tmp_path / "project"
+    repo.mkdir()
+
+    # Should get same identifier multiple times
+    id1 = get_project_identifier(repo)
+    id2 = get_project_identifier(repo)
+    id3 = get_project_identifier(repo)
+
+    assert id1 == id2 == id3
+
+
+def test_get_project_identifier_different_for_different_repos(tmp_path):
+    """Test that different projects get different identifiers."""
+    import subprocess
+
+    # Create two git repos with different remotes
+    repo1 = tmp_path / "repo1"
+    repo1.mkdir()
+    subprocess.run(["git", "init"], cwd=repo1, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.com/user/project1.git"],
+        cwd=repo1,
+        check=True,
+        capture_output=True
+    )
+
+    repo2 = tmp_path / "repo2"
+    repo2.mkdir()
+    subprocess.run(["git", "init"], cwd=repo2, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://github.com/user/project2.git"],
+        cwd=repo2,
+        check=True,
+        capture_output=True
+    )
+
+    id1 = get_project_identifier(repo1)
+    id2 = get_project_identifier(repo2)
+
+    # Different repos should have different identifiers
+    assert id1 != id2
+    # Both should start with "git-"
+    assert id1.startswith("git-")
+    assert id2.startswith("git-")
+
+
+def test_get_project_identifier_different_paths(tmp_path):
+    """Test that different paths get different identifiers."""
+    # Create two different directories
+    dir1 = tmp_path / "project1"
+    dir1.mkdir()
+
+    dir2 = tmp_path / "project2"
+    dir2.mkdir()
+
+    id1 = get_project_identifier(dir1)
+    id2 = get_project_identifier(dir2)
+
+    # Different paths should have different identifiers
+    assert id1 != id2
+    # Both should start with "path-"
+    assert id1.startswith("path-")
+    assert id2.startswith("path-")
