@@ -1,4 +1,5 @@
 ---
+assignee: Brett Jia
 created: '2026-02-04T14:33:58.328448+00:00'
 deps:
 - bg-0f30d1
@@ -6,13 +7,13 @@ deps:
 id: bg-c4be4d
 parent: bg-92325e
 priority: 1
-status: open
+status: closed
 tags:
 - offline
 - storage
 title: Update TicketStorage to detect and handle offline mode
 type: task
-updated: '2026-02-04T14:33:58.328766+00:00'
+updated: '2026-02-05T18:59:40.420616+00:00'
 ---
 
 ## Description
