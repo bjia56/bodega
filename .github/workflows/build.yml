@@ -42,7 +42,7 @@ jobs:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Setup build folder
+      - name: Setup Python environment
         shell: bash
         run: |
           mkdir build
@@ -52,10 +52,17 @@ jobs:
           npm install @bjia56/portable-python-3.12
 
           PYTHON_EXE=$(node -e "console.log(require('@bjia56/portable-python-3.12'))")
+
+          # Convert Windows paths to Unix format for Git Bash
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Convert C:\path\to\python.exe to /c/path/to/python.exe
+            PYTHON_EXE=$(echo "$PYTHON_EXE" | sed -e 's|\\|/|g' -e 's|^\([A-Za-z]\):|/\L\1|')
+          fi
+
           echo "python_exe=$PYTHON_EXE" >> $GITHUB_ENV
 
       - name: Setup dependencies
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
+        if: ${{ env.RUNNER_OS == 'Linux' }}
         run: |
           sudo apt update
           sudo apt install -y patchelf
