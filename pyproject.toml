@@ -19,6 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest==9.0.2",
+    "nuitka==2.8.10",
 ]
 
 [project.scripts]

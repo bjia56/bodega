@@ -11,118 +11,68 @@ on:
   workflow_dispatch:
 
 env:
-  chimplink_version: v0.11.0
+  MACOSX_DEPLOYMENT_TARGET: 10.15
 
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-slim
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            output: bodega-windows-x86_64.exe
+          - os: macos-15-intel
+            output: bodega-macos-x86_64
+          - os: macos-14
+            output: bodega-macos-arm64
+          - os: ubuntu-latest
+            output: bodega-linux-x86_64
+          - os: ubuntu-24.04-arm
+            output: bodega-linux-arm64
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get Cosmopolitan Python
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup build folder
+        shell: bash
         run: |
-          wget https://cosmo.zip/pub/cosmos/bin/python -O python.exe
-          chmod +x python.exe
+          mkdir build
+          cd build
 
-          PY_VERSION=$(./python.exe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          echo "py_version=$PY_VERSION" >> $GITHUB_ENV
+          npm init --yes
+          npm install @bjia56/portable-python-3.12
 
-      - name: Bundle setuptools
-        run: |
-          cp ./python.exe ./python_with_setuptools.exe
+          PYTHON_EXE=$(node -e "console.log(require('@bjia56/portable-python-3.12'))")
+          echo "python_exe=$PYTHON_EXE" >> $GITHUB_ENV
 
-          mkdir setuptools_temp
-          ./python.exe -m pip install --target=setuptools_temp setuptools
-
-          folders=$(ls setuptools_temp)
-          for folder in $folders; do
-            ./python.exe scripts/add_to_zip.py ./setuptools_temp/"$folder" ./python_with_setuptools.exe Lib/site-packages/"$folder"
-          done
-
-          rm -rf setuptools_temp
-
-      - name: Install and bundle dependencies
-        run: |
-          ./python_with_setuptools.exe -m pip wheel --no-deps .
-
-          mkdir bodega_temp
-          ./python_with_setuptools.exe -m pip install --target=bodega_temp ./bodega-*.whl
-
-          folders=$(ls bodega_temp)
-          for folder in $folders; do
-            ./python_with_setuptools.exe scripts/add_to_zip.py ./bodega_temp/"$folder" ./python.exe Lib/site-packages/"$folder"
-          done
-
-          zip -urj python.exe scripts/.args
-
-      - name: Rename
-        run: mv python.exe bodega.exe
-
-      - name: Install upx
+      - name: Setup dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
         run: |
           sudo apt update
-          sudo apt install -y upx-ucl
+          sudo apt install -y patchelf
 
-      - name: Download blink
+      - name: Build bodega package
+        shell: bash
         run: |
-          mkdir -p /tmp/blink
-          cd /tmp/blink
-
-          for item in \
-            "blink-tiny-netbsd10.0-aarch64-stripped blink-netbsd-aarch64" \
-            "blink-tiny-openbsd7.6-aarch64-stripped blink-openbsd-aarch64" \
-            "blink-tiny-openbsd7.6-x86_64-stripped blink-openbsd-x86_64" \
-            "blink-tiny-dragonflybsd6.4.0-x86_64-stripped blink-dragonflybsd-x86_64" \
-            "blink-tiny-midnightbsd3.2.3-x86_64-stripped blink-midnightbsd-x86_64" \
-            "blink-tiny-solaris11.4-x86_64-stripped blink-solaris-x86_64" \
-            "blink-tiny-haikur1beta5-x86_64-stripped blink-haiku-x86_64" \
-            "blink-tiny-linux-powerpc64le-stripped blink-linux-powerpc64le" \
-            "blink-tiny-linux-i386-stripped blink-linux-i386" \
-            "blink-tiny-linux-riscv64-stripped blink-linux-riscv64" \
-            "blink-tiny-linux-loongarch64-stripped blink-linux-loongarch64" \
-            "blink-tiny-linux-s390x-stripped blink-linux-s390x" \
-            "blink-tiny-macos10.4-powerpc-stripped blink-macos-powerpc"
-          do
-            set -- $item
-            wget "https://github.com/bjia56/blinkverse/releases/download/v8/$1" -O "$2"
-            chmod +x "$2"
-            if [[ "$2" == "blink-linux-powerpc64le" || "$2" == "blink-linux-i386" ]]; then
-              upx --best "$2"
-            fi
-          done
-
-      - name: Chimplink
-        run: |
-          wget https://github.com/bjia56/chimp/releases/download/${{ env.chimplink_version }}/chimplink
-          chmod +x chimplink
-
-          wget https://cosmo.zip/pub/cosmos/bin/ape-aarch64.elf
-          wget https://cosmo.zip/pub/cosmos/bin/ape-x86_64.elf
-
-          sha256=$(sha256sum bodega.exe | cut -d ' ' -f 1)
-          ./chimplink bodega.exe bodega ${{ github.sha }} \
-            --sha256 $sha256 \
-            ape-x86_64.elf \
-            ape-aarch64.elf \
-            --os Linux /tmp/blink/blink-linux-* \
-            --os NetBSD /tmp/blink/blink-netbsd-* \
-            --os OpenBSD /tmp/blink/blink-openbsd-* \
-            --os DragonFly /tmp/blink/blink-dragonflybsd-* \
-            --os Solaris /tmp/blink/blink-solaris-* \
-            --os MidnightBSD /tmp/blink/blink-midnightbsd-* \
-            --os Haiku /tmp/blink/blink-haiku-* \
-            --os Darwin /tmp/blink/blink-macos-*
-          chmod +x bodega
+          ${{ env.python_exe }} -m pip install '.[dev]'
+          VERSION=$(${{ env.python_exe }} -c "import bodega; print(bodega.__version__)")
+          ${{ env.python_exe }} -m nuitka --onefile --onefile-tempdir-spec='{HOME}/.bodega/.runtime/{VERSION}' --file-version=$VERSION --static-libpython=no --output-filename=${{ matrix.output }} ./src/bodega
 
       - name: Verify binary
         run: |
-          ./bodega --version
+          ./${{ matrix.output }} --version
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bodega
-          path: bodega
+          name: ${{ matrix.output }}
+          path: ./${{ matrix.output }}
