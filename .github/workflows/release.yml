@@ -85,6 +85,10 @@ jobs:
         with:
           pattern: bodega-*
 
+      - name: List files
+        run: |
+          tree
+
       - name: Release
         if: ${{ !inputs.dry_run }}
         uses: softprops/action-gh-release@v2
