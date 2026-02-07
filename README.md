@@ -6,7 +6,7 @@ ticket management architecture with the flexibility of git tracking in a dedicat
 
 ## Installation
 
-Download `bodega` from [GitHub releases](https://github.com/bjia56/bodega/releases/latest). Place it somewhere in your `PATH`.
+Download `bodega` from [GitHub releases](https://github.com/bjia56/bodega/releases/latest) using the artifact matching your platform. Place it somewhere in your `PATH`.
 
 ### Homebrew
 
