@@ -72,7 +72,7 @@ jobs:
         run: |
           ${{ env.python_exe }} -m pip install '.[dev]'
           VERSION=$(${{ env.python_exe }} -c "import bodega; print(bodega.__version__)")
-          ${{ env.python_exe }} -m nuitka --disable-ccache --onefile --onefile-tempdir-spec='{HOME}/.bodega/.runtime/{VERSION}' --file-version=$VERSION --static-libpython=no --output-filename=${{ matrix.output }} ./src/bodega
+          ${{ env.python_exe }} -m nuitka --assume-yes-for-downloads --onefile --onefile-tempdir-spec='{HOME}/.bodega/.runtime/{VERSION}' --file-version=$VERSION --static-libpython=no --output-filename=${{ matrix.output }} ./src/bodega
 
       - name: Verify binary
         run: |
