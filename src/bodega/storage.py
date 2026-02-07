@@ -3,9 +3,8 @@
 from pathlib import Path
 from typing import Optional, Iterator
 import frontmatter
-import fcntl
 from contextlib import contextmanager
-import time
+from filelock import FileLock, Timeout
 
 from bodega.models.ticket import Ticket, TicketStatus
 from bodega.config import BodegaConfig, load_config, write_default_config
@@ -331,7 +330,7 @@ class TicketStorage:
         """
         Advisory file lock for safe concurrent writes.
 
-        Uses fcntl.flock on Unix systems.
+        Uses filelock library for cross-platform compatibility.
 
         Args:
             path: Path to the file to lock
@@ -347,25 +346,10 @@ class TicketStorage:
 
         # Create lock file
         lock_path = path.with_suffix(".lock")
+        lock = FileLock(lock_path, timeout=timeout)
 
-        with open(lock_path, "w") as lock_file:
-            try:
-                # Try to acquire lock with timeout
-                start = time.time()
-                while True:
-                    try:
-                        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        break
-                    except BlockingIOError:
-                        if time.time() - start > timeout:
-                            raise StorageError(f"Could not acquire lock on {path}")
-                        time.sleep(0.1)
-
+        try:
+            with lock:
                 yield
-
-            finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                try:
-                    lock_path.unlink()
-                except FileNotFoundError:
-                    pass
+        except Timeout:
+            raise StorageError(f"Could not acquire lock on {path}")
