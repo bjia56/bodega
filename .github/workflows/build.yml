@@ -42,16 +42,23 @@ jobs:
           sudo apt update
           sudo apt install -y patchelf
 
+      - name: Set up zig
+        uses: mlugg/setup-zig@v2.2.1
+        with:
+          version: 0.15.2
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.12
 
       - name: Install dependencies
+        shell: bash
         run: |
           python -m pip install .
 
       - name: Get bodega version
+        shell: bash
         run: |
           cd src
           echo "BODEGA_VERSION=$(python -c 'import bodega; print(bodega.__version__)')" >> $GITHUB_ENV
@@ -67,6 +74,7 @@ jobs:
           zig: true
 
       - name: Verify binary
+        shell: bash
         run: |
           ./build/${{ matrix.output }} --version
 
