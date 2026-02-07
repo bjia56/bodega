@@ -27,59 +27,51 @@ jobs:
             output: bodega-macos-x86_64
           - os: macos-14
             output: bodega-macos-arm64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             output: bodega-linux-x86_64
-          - os: ubuntu-24.04-arm
+          - os: ubuntu-22.04-arm
             output: bodega-linux-arm64
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup NodeJS
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup Python environment
-        shell: bash
-        run: |
-          mkdir build
-          cd build
-
-          npm init --yes
-          npm install @bjia56/portable-python-3.12
-
-          PYTHON_EXE=$(node -e "console.log(require('@bjia56/portable-python-3.12'))")
-
-          # Convert Windows paths to Unix format for Git Bash
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            # Convert C:\path\to\python.exe to /c/path/to/python.exe
-            PYTHON_EXE=$(echo "$PYTHON_EXE" | sed -e 's|\\|/|g' -e 's|^\([A-Za-z]\):|/\L\1|')
-          fi
-
-          echo "python_exe=$PYTHON_EXE" >> $GITHUB_ENV
-
-      - name: Setup dependencies
-        if: ${{ env.RUNNER_OS == 'Linux' }}
+      - name: System dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt update
           sudo apt install -y patchelf
 
-      - name: Build bodega package
-        shell: bash
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
         run: |
-          ${{ env.python_exe }} -m pip install '.[dev]'
-          VERSION=$(${{ env.python_exe }} -c "import bodega; print(bodega.__version__)")
-          ${{ env.python_exe }} -m nuitka --assume-yes-for-downloads --onefile --onefile-tempdir-spec='{HOME}/.bodega/.runtime/{VERSION}' --file-version=$VERSION --static-libpython=no --output-filename=${{ matrix.output }} ./src/bodega
+          python -m pip install .
+
+      - name: Get bodega version
+        run: |
+          cd src
+          echo "BODEGA_VERSION=$(python -c 'import bodega; print(bodega.__version__)')" >> $GITHUB_ENV
+
+      - uses: Nuitka/Nuitka-Action@88d0c6c3d6f5022e79ef3fcc1e792871b4de8340
+        with:
+          nuitka-version: release/4.0
+          script-name: ./src/bodega
+          mode: onefile
+          file-version: ${{ env.BODEGA_VERSION }}
+          onefile-tempdir-spec: '{HOME}/.cache/bodega/{VERSION}'
+          output-file: ${{ matrix.output }}
+          zig: true
 
       - name: Verify binary
         run: |
-          ./${{ matrix.output }} --version
+          ./build/${{ matrix.output }} --version
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.output }}
-          path: ./${{ matrix.output }}
+          path: ./build/${{ matrix.output }}
