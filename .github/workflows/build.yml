@@ -43,6 +43,7 @@ jobs:
           sudo apt install -y patchelf
 
       - name: Set up zig
+        if: runner.os != 'macOS'
         uses: mlugg/setup-zig@v2.2.1
         with:
           version: 0.15.2
@@ -71,7 +72,7 @@ jobs:
           file-version: ${{ env.BODEGA_VERSION }}
           onefile-tempdir-spec: '{HOME}/.cache/bodega/{VERSION}'
           output-file: ${{ matrix.output }}
-          zig: true
+          zig: ${{ runner.os != 'macOS' }}
 
       - name: Verify binary
         shell: bash
