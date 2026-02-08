@@ -331,6 +331,7 @@ class TicketStorage:
         Advisory file lock for safe concurrent writes.
 
         Uses filelock library for cross-platform compatibility.
+        Automatically cleans up lock file after use.
 
         Args:
             path: Path to the file to lock
@@ -353,3 +354,7 @@ class TicketStorage:
                 yield
         except Timeout:
             raise StorageError(f"Could not acquire lock on {path}")
+        finally:
+            # Cleanup: delete lock file if it exists
+            if lock_path.exists():
+                lock_path.unlink()

@@ -248,7 +248,7 @@ def init_worktree(repo_root: Path, bodega_dir: Path, branch_name: str = "bodega"
 
     # Create .bodega/.gitignore
     gitignore_path = bodega_dir / ".gitignore"
-    gitignore_path.write_text("worktree/\n")
+    gitignore_path.write_text("worktree/\n*.lock\n")
 
     # Check if branch already exists locally
     result = _run_git(['git', 'rev-parse', '--verify', branch_name], cwd=repo_root, check=False)
