@@ -66,7 +66,7 @@ jobs:
 
       - uses: Nuitka/Nuitka-Action@88d0c6c3d6f5022e79ef3fcc1e792871b4de8340
         with:
-          nuitka-version: "4.0"
+          nuitka-version: "4.0.1"
           script-name: ./src/bodega
           mode: onefile
           file-version: ${{ env.BODEGA_VERSION }}
