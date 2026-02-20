@@ -291,6 +291,27 @@ def test_ready_includes_tickets_with_closed_deps(runner, temp_repo):
     assert blocked_id[:8] in result.output
 
 
+def test_ready_tag_filter_matches(runner, temp_repo_with_tickets):
+    """Test that ready --tag filters to only tickets with that tag."""
+    tickets = temp_repo_with_tickets
+    urgent_id, api_id, task_id = tickets
+
+    result = runner.invoke(main, ["ready", "--tag", "urgent"])
+
+    assert result.exit_code == 0
+    assert urgent_id[:8] in result.output
+    assert api_id[:8] not in result.output
+    assert task_id[:8] not in result.output
+
+
+def test_ready_tag_filter_no_matches(runner, temp_repo_with_tickets):
+    """Test that ready --tag returns no output when no tickets match."""
+    result = runner.invoke(main, ["ready", "--tag", "nonexistent"])
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "No tickets found."
+
+
 def test_ready_fails_without_repo(runner):
     """Test that ready fails when not in a repository."""
     with runner.isolated_filesystem():

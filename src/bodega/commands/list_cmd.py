@@ -96,8 +96,9 @@ def list_tickets(
 
 @click.command()
 @click.help_option("-h", "--help", help="Show this message and exit")
+@click.option("--tag", help="Filter by tag")
 @pass_context
-def ready(ctx: Context):
+def ready(ctx: Context, tag: str | None = None):
     """
     List tickets that are ready to work on
 
@@ -109,6 +110,10 @@ def ready(ctx: Context):
     """
     storage = require_repo(ctx)
     tickets = get_ready_tickets(storage)
+
+    if tag:
+        tickets = [t for t in tickets if tag in t.tags]
+
     output = format_tickets(tickets, ctx.config)
     click.echo(output)
 
