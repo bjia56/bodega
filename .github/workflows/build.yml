@@ -42,12 +42,6 @@ jobs:
           sudo apt update
           sudo apt install -y patchelf
 
-      - name: Set up zig
-        if: runner.os != 'macOS'
-        uses: mlugg/setup-zig@v2.2.1
-        with:
-          version: 0.15.2
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -73,7 +67,6 @@ jobs:
           onefile-tempdir-spec: '{HOME}/.cache/bodega/{VERSION}'
           onefile-no-compression: true
           output-file: ${{ matrix.output }}
-          zig: ${{ runner.os != 'macOS' }}
 
       - name: Verify binary
         shell: bash
