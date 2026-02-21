@@ -175,7 +175,7 @@ jobs:
           wget https://cosmo.zip/pub/cosmos/bin/ape-x86_64.elf
 
           sha256=$(sha256sum bodega.exe | cut -d ' ' -f 1)
-          ./chimplink bodega.exe bodega ${{ github.sha }} \
+          ./chimplink bodega.exe bodega-unknown-unknown ${{ github.sha }} \
             --sha256 $sha256 \
             ape-x86_64.elf \
             ape-aarch64.elf \
@@ -187,14 +187,14 @@ jobs:
             --os MidnightBSD /tmp/blink/blink-midnightbsd-* \
             --os Haiku /tmp/blink/blink-haiku-* \
             --os Darwin /tmp/blink/blink-macos-*
-          chmod +x bodega
+          chmod +x bodega-unknown-unknown
 
       - name: Verify binary
         run: |
-          ./bodega --version
+          ./bodega-unknown-unknown --version
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bodega
-          path: bodega
+          name: bodega-unknown-unknown
+          path: bodega-unknown-unknown
