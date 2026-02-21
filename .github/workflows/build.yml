@@ -71,6 +71,7 @@ jobs:
           mode: onefile
           file-version: ${{ env.BODEGA_VERSION }}
           onefile-tempdir-spec: '{HOME}/.cache/bodega/{VERSION}'
+          onefile-no-compression: true
           output-file: ${{ matrix.output }}
           zig: ${{ runner.os != 'macOS' }}
 
