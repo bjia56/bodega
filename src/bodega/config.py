@@ -1,6 +1,6 @@
 """Configuration module for bodega settings."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 import os
@@ -27,6 +27,14 @@ defaults:
 
 # ID prefix for generated ticket IDs
 # id_prefix: bg
+
+# Per-subdirectory prefix overrides (longest matching path wins)
+# When creating tickets, the prefix is chosen based on the current working
+# directory relative to the repository root.
+# prefix_by_path:
+#   services: svc      # tickets created in services/ use svc- prefix
+#   services/api: api  # tickets in services/api/ use api- prefix
+#   frontend: fe       # tickets from frontend/ use fe- prefix
 
 # Editor command (defaults to $EDITOR)
 # editor: vim
@@ -66,6 +74,10 @@ class BodegaConfig:
 
     # ID configuration
     id_prefix: str = "bg"
+
+    # Subdirectory-based prefix overrides: maps relative path → prefix.
+    # The longest matching path key wins when creating new tickets.
+    prefix_by_path: dict[str, str] = field(default_factory=dict)
 
     # Editor
     editor: Optional[str] = None  # None = use $EDITOR
@@ -174,6 +186,9 @@ def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
     if not config._id_prefix_was_set:
         config.id_prefix = _derive_id_prefix(bodega_dir)
 
+    # Apply subdirectory prefix override (overrides explicit and derived prefix)
+    _apply_subdir_prefix_override(config, bodega_dir)
+
     return config
 
 
@@ -201,6 +216,10 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
     if "id_prefix" in data:
         config.id_prefix = data["id_prefix"]
         config._id_prefix_was_set = True
+    if "prefix_by_path" in data:
+        raw = data["prefix_by_path"]
+        if isinstance(raw, dict):
+            config.prefix_by_path = {str(k): str(v) for k, v in raw.items()}
     if "editor" in data:
         config.editor = data["editor"]
     if "list_format" in data:
@@ -228,6 +247,58 @@ def _apply_env_vars(config: BodegaConfig) -> None:
     if "BODEGA_DIR" in os.environ:
         config.bodega_dir = Path(os.environ["BODEGA_DIR"])
     # EDITOR is handled via effective_editor property
+
+
+def _apply_subdir_prefix_override(
+    config: BodegaConfig, bodega_dir: Optional[Path]
+) -> None:
+    """
+    Apply a subdirectory-based prefix override from prefix_by_path config.
+
+    Computes the current working directory relative to the repository root
+    (``bodega_dir.parent``) and selects the longest-matching key from
+    ``config.prefix_by_path``.  When a match is found it overrides
+    ``config.id_prefix`` regardless of whether it was set explicitly or
+    derived from the folder name.  This only affects new-ticket ID
+    generation; reading or editing existing tickets is prefix-agnostic.
+
+    No override is applied when:
+    - ``config.prefix_by_path`` is empty
+    - ``bodega_dir`` is None (no repo found)
+    - The current working directory is outside the repository root (e.g.
+      offline mode stores under ``~/.bodega/``)
+
+    Args:
+        config: BodegaConfig instance to potentially modify
+        bodega_dir: Path to the ``.bodega`` directory, or None
+    """
+    if not config.prefix_by_path or not bodega_dir:
+        return
+
+    repo_root = bodega_dir.parent.resolve()
+    try:
+        rel = Path.cwd().resolve().relative_to(repo_root)
+        rel_str = rel.as_posix()
+        if rel_str == ".":
+            rel_str = ""
+    except ValueError:
+        # cwd is outside the repo root – offline mode or similar
+        return
+
+    # Find the longest matching path key
+    best_prefix: Optional[str] = None
+    best_len = -1
+
+    for path_key, prefix in config.prefix_by_path.items():
+        key = path_key.strip("/")
+        # A key matches when cwd is exactly at that path or inside it
+        if rel_str == key or rel_str.startswith(key + "/"):
+            if len(key) > best_len:
+                best_prefix = prefix
+                best_len = len(key)
+
+    if best_prefix is not None:
+        config.id_prefix = best_prefix
 
 
 # ============================================================================

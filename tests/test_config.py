@@ -714,3 +714,232 @@ offline_stores:
     # Path should be returned even though it doesn't exist
     assert path == tmp_path / ".bodega" / "git-abc123"
     assert not path.exists()
+
+
+# ============================================================================
+# Subdirectory Prefix Override Tests
+# ============================================================================
+
+
+def test_prefix_by_path_default_empty():
+    """Test that prefix_by_path defaults to empty dict."""
+    config = BodegaConfig()
+    assert config.prefix_by_path == {}
+
+
+def test_prefix_by_path_applies_from_matching_subdirectory(tmp_path, monkeypatch):
+    """Test that prefix_by_path applies the correct prefix from a subdirectory."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  services: svc\n"
+    )
+
+    subdir = tmp_path / "myproject" / "services"
+    subdir.mkdir()
+    monkeypatch.chdir(subdir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    assert config.id_prefix == "svc"
+
+
+def test_prefix_by_path_no_match_falls_back_to_derived(tmp_path, monkeypatch):
+    """Test that an unmatched cwd falls back to derived/explicit prefix."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  services: svc\n"
+    )
+
+    # Change to a directory that does NOT match any prefix_by_path key
+    other_dir = tmp_path / "myproject" / "frontend"
+    other_dir.mkdir()
+    monkeypatch.chdir(other_dir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    # No match: falls back to folder-name derivation → "myproject"
+    assert config.id_prefix == "myproject"
+
+
+def test_prefix_by_path_longest_match_wins(tmp_path, monkeypatch):
+    """Test that the longest matching path key wins over a shorter one."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  services: svc\n  services/api: api\n"
+    )
+
+    # From services/api – should match services/api (longer key)
+    api_dir = tmp_path / "myproject" / "services" / "api"
+    api_dir.mkdir(parents=True)
+    monkeypatch.chdir(api_dir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    assert config.id_prefix == "api"
+
+
+def test_prefix_by_path_shorter_match_used_when_longer_does_not_match(
+    tmp_path, monkeypatch
+):
+    """Test that a shorter key applies when the deeper path doesn't match."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  services: svc\n  services/api: api\n"
+    )
+
+    # From services/backend – matches only "services", not "services/api"
+    backend_dir = tmp_path / "myproject" / "services" / "backend"
+    backend_dir.mkdir(parents=True)
+    monkeypatch.chdir(backend_dir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    assert config.id_prefix == "svc"
+
+
+def test_prefix_by_path_overrides_explicit_id_prefix(tmp_path, monkeypatch):
+    """Test that prefix_by_path overrides an explicitly set id_prefix."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "id_prefix: explicit\nprefix_by_path:\n  services: svc\n"
+    )
+
+    subdir = tmp_path / "myproject" / "services"
+    subdir.mkdir()
+    monkeypatch.chdir(subdir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    # Subdirectory override wins over explicit id_prefix
+    assert config.id_prefix == "svc"
+
+
+def test_prefix_by_path_no_override_outside_configured_paths_keeps_explicit(
+    tmp_path, monkeypatch
+):
+    """Test that explicit id_prefix is preserved when no subdir key matches."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "id_prefix: explicit\nprefix_by_path:\n  services: svc\n"
+    )
+
+    # Run from repo root (no match for any key)
+    repo_root = tmp_path / "myproject"
+    monkeypatch.chdir(repo_root)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    # No subdir match → explicit id_prefix is used
+    assert config.id_prefix == "explicit"
+
+
+def test_prefix_by_path_from_repo_root_no_match_falls_back(tmp_path, monkeypatch):
+    """Test that running from repo root with no root key uses derived prefix."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  services: svc\n"
+    )
+
+    # Run from repo root
+    repo_root = tmp_path / "myproject"
+    monkeypatch.chdir(repo_root)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    # No match at root → derived from folder name
+    assert config.id_prefix == "myproject"
+
+
+def test_prefix_by_path_deeply_nested_subdirectory(tmp_path, monkeypatch):
+    """Test that a deeply nested subdirectory still matches a shallow key."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  src: src\n"
+    )
+
+    deeply_nested_dir = tmp_path / "myproject" / "src" / "a" / "b" / "c"
+    deeply_nested_dir.mkdir(parents=True)
+    monkeypatch.chdir(deeply_nested_dir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    assert config.id_prefix == "src"
+
+
+def test_prefix_by_path_not_applied_when_empty(tmp_path, monkeypatch):
+    """Test that id_prefix is unchanged when prefix_by_path is absent."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    # No prefix_by_path in config
+    project_dir.joinpath("config.yaml").write_text("id_prefix: explicit\n")
+
+    subdir = tmp_path / "myproject" / "services"
+    subdir.mkdir()
+    monkeypatch.chdir(subdir)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    # No prefix_by_path → explicit id_prefix untouched
+    assert config.id_prefix == "explicit"
+
+
+def test_prefix_by_path_not_applied_offline_mode(tmp_path, monkeypatch):
+    """Test that prefix_by_path is not applied in offline mode (cwd outside repo)."""
+    # Simulate offline store at ~/.bodega/myproject/.bodega
+    home = tmp_path / "home"
+    home.mkdir()
+    offline_bodega = home / ".bodega" / "myproject" / ".bodega"
+    offline_bodega.mkdir(parents=True)
+    offline_bodega.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  services: svc\n"
+    )
+
+    # Mock Path.home() so load_config detects offline mode
+    monkeypatch.setattr("bodega.config.Path.home", lambda: home)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    # cwd is completely outside the offline store path
+    outside = tmp_path / "workspace"
+    outside.mkdir()
+    monkeypatch.chdir(outside)
+
+    config = load_config(offline_bodega)
+
+    # prefix_by_path should NOT be applied since cwd is outside the store root
+    # The id_prefix should fall back to derived ("myproject") since offline_bodega
+    # parent is ~/.bodega/myproject → folder name "myproject"
+    assert config.id_prefix == "myproject"
+
+
+def test_prefix_by_path_parsed_from_yaml(tmp_path, monkeypatch):
+    """Test that prefix_by_path is correctly parsed from YAML config."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "prefix_by_path:\n  src: proj\n  tests: tst\n"
+    )
+
+    monkeypatch.chdir(tmp_path / "myproject")
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    assert config.prefix_by_path == {"src": "proj", "tests": "tst"}
+
