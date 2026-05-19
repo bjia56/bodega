@@ -750,7 +750,7 @@ def test_id_prefix_object_applies_override_from_matching_subdirectory(
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    - services: svc\n"
+        "    services: svc\n"
     )
 
     subdir = tmp_path / "myproject" / "services"
@@ -771,7 +771,7 @@ def test_id_prefix_object_no_match_uses_default(tmp_path, monkeypatch):
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    - services: svc\n"
+        "    services: svc\n"
     )
 
     other_dir = tmp_path / "myproject" / "frontend"
@@ -792,8 +792,8 @@ def test_id_prefix_object_longest_match_wins(tmp_path, monkeypatch):
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    - services: svc\n"
-        "    - services/api: api\n"
+        "    services: svc\n"
+        "    services/api: api\n"
     )
 
     api_dir = tmp_path / "myproject" / "services" / "api"
@@ -814,8 +814,8 @@ def test_id_prefix_object_shorter_match_when_longer_not_matching(tmp_path, monke
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    - services: svc\n"
-        "    - services/api: api\n"
+        "    services: svc\n"
+        "    services/api: api\n"
     )
 
     backend_dir = tmp_path / "myproject" / "services" / "backend"
@@ -838,7 +838,7 @@ def test_id_prefix_object_not_applied_offline_mode(tmp_path, monkeypatch):
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    - services: svc\n"
+        "    services: svc\n"
     )
 
     monkeypatch.setattr("bodega.config.Path.home", lambda: home)
@@ -861,8 +861,8 @@ def test_id_prefix_object_parsed_to_internal_overrides(tmp_path, monkeypatch):
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    - src: proj\n"
-        "    - tests: tst\n"
+        "    src: proj\n"
+        "    tests: tst\n"
     )
 
     monkeypatch.chdir(tmp_path / "myproject")
@@ -881,7 +881,7 @@ def test_id_prefix_object_default_required(tmp_path, monkeypatch):
     project_dir.joinpath("config.yaml").write_text(
         "id_prefix:\n"
         "  overrides:\n"
-        "    - services: svc\n"
+        "    services: svc\n"
     )
 
     monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
@@ -890,56 +890,34 @@ def test_id_prefix_object_default_required(tmp_path, monkeypatch):
         load_config(project_dir)
 
 
-def test_id_prefix_object_overrides_must_be_list(tmp_path, monkeypatch):
-    """Test object-mode id_prefix requires overrides to be a list."""
+def test_id_prefix_object_overrides_must_be_mapping(tmp_path, monkeypatch):
+    """Test object-mode id_prefix requires overrides to be a mapping."""
     project_dir = tmp_path / "myproject" / ".bodega"
     project_dir.mkdir(parents=True)
     project_dir.joinpath("config.yaml").write_text(
         "id_prefix:\n"
         "  default: core\n"
         "  overrides:\n"
-        "    services: svc\n"
+        "    - services: svc\n"
     )
 
     monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
 
-    with pytest.raises(ValueError, match="id_prefix.overrides must be a list"):
+    with pytest.raises(ValueError, match="id_prefix.overrides must be a mapping"):
         load_config(project_dir)
 
 
-def test_id_prefix_object_override_entries_must_be_mappings(tmp_path, monkeypatch):
-    """Test object-mode id_prefix requires override entries to be mappings."""
+def test_id_prefix_object_overrides_must_not_be_scalar(tmp_path, monkeypatch):
+    """Test object-mode id_prefix rejects scalar override values."""
     project_dir = tmp_path / "myproject" / ".bodega"
     project_dir.mkdir(parents=True)
     project_dir.joinpath("config.yaml").write_text(
         "id_prefix:\n"
         "  default: core\n"
-        "  overrides:\n"
-        "    - services\n"
+        "  overrides: services\n"
     )
 
     monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
 
-    with pytest.raises(ValueError, match="id_prefix.overrides entries must be mappings"):
-        load_config(project_dir)
-
-
-def test_id_prefix_object_override_entries_must_have_single_mapping(
-    tmp_path, monkeypatch
-):
-    """Test object-mode id_prefix requires exactly one mapping per entry."""
-    project_dir = tmp_path / "myproject" / ".bodega"
-    project_dir.mkdir(parents=True)
-    project_dir.joinpath("config.yaml").write_text(
-        "id_prefix:\n"
-        "  default: core\n"
-        "  overrides:\n"
-        "    - {services: svc, api: api}\n"
-    )
-
-    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
-
-    with pytest.raises(
-        ValueError, match="id_prefix.overrides entries must have exactly one mapping"
-    ):
+    with pytest.raises(ValueError, match="id_prefix.overrides must be a mapping"):
         load_config(project_dir)

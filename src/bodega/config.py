@@ -31,8 +31,8 @@ defaults:
 #   id_prefix:
 #     default: bg
 #     overrides:
-#       - services: svc
-#       - services/api: api
+#       services: svc
+#       services/api: api
 
 # Editor command (defaults to $EDITOR)
 # editor: vim
@@ -223,23 +223,14 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
             if not isinstance(default_prefix, str):
                 raise ValueError(f"id_prefix.default must be a string in {path}")
 
-            overrides = raw_id_prefix.get("overrides", [])
-            if not isinstance(overrides, list):
-                raise ValueError(f"id_prefix.overrides must be a list in {path}")
+            overrides = raw_id_prefix.get("overrides", {})
+            if not isinstance(overrides, dict):
+                raise ValueError(f"id_prefix.overrides must be a mapping in {path}")
 
-            parsed_overrides: dict[str, str] = {}
-            for entry in overrides:
-                if not isinstance(entry, dict):
-                    raise ValueError(
-                        f"id_prefix.overrides entries must be mappings in {path}"
-                    )
-                if len(entry) != 1:
-                    raise ValueError(
-                        f"id_prefix.overrides entries must have exactly one mapping in {path}"
-                    )
-                for override_path, prefix in entry.items():
-                    normalized_key = str(override_path).strip("/")
-                    parsed_overrides[normalized_key] = str(prefix)
+            parsed_overrides = {
+                str(override_path).strip("/"): str(prefix)
+                for override_path, prefix in overrides.items()
+            }
 
             config.id_prefix = default_prefix
             config.id_prefix_overrides = parsed_overrides
