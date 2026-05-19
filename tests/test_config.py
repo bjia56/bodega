@@ -728,6 +728,18 @@ def test_id_prefix_overrides_default_empty():
     assert config.id_prefix_overrides == {}
 
 
+def test_id_prefix_overrides_empty_when_id_prefix_not_configured(tmp_path, monkeypatch):
+    """Test overrides stay empty when id_prefix is not set in config files."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    config = load_config(project_dir)
+
+    assert config.id_prefix == "myproject"
+    assert config.id_prefix_overrides == {}
+
+
 def test_id_prefix_object_applies_override_from_matching_subdirectory(
     tmp_path, monkeypatch
 ):

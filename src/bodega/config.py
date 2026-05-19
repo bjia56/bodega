@@ -314,8 +314,7 @@ def _apply_subdir_prefix_override(config: BodegaConfig, bodega_dir: Optional[Pat
     best_prefix: Optional[str] = None
     best_len = -1
 
-    for path_key, prefix in config.id_prefix_overrides.items():
-        key = path_key.strip("/")
+    for key, prefix in config.id_prefix_overrides.items():
         # A key matches when cwd is exactly at that path or inside it
         if rel_str == key or rel_str.startswith(key + "/"):
             if len(key) > best_len:
