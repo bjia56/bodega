@@ -25,16 +25,14 @@ defaults:
   priority: 2
   # assignee: ""  # Empty = use git user.name
 
-# ID prefix for generated ticket IDs
-# id_prefix: bg
-
-# Per-subdirectory prefix overrides (longest matching path wins)
-# When creating tickets, the prefix is chosen based on the current working
-# directory relative to the repository root.
-# prefix_by_path:
-#   services: svc      # tickets created in services/ use svc- prefix
-#   services/api: api  # tickets in services/api/ use api- prefix
-#   frontend: fe       # tickets from frontend/ use fe- prefix
+# ID prefix for generated ticket IDs:
+# - scalar mode: id_prefix: bg
+# - object mode:
+#   id_prefix:
+#     default: bg
+#     overrides:
+#       - services: svc
+#       - services/api: api
 
 # Editor command (defaults to $EDITOR)
 # editor: vim
@@ -75,9 +73,9 @@ class BodegaConfig:
     # ID configuration
     id_prefix: str = "bg"
 
-    # Subdirectory-based prefix overrides: maps relative path → prefix.
+    # Subdirectory-based prefix overrides: maps relative path -> prefix.
     # The longest matching path key wins when creating new tickets.
-    prefix_by_path: dict[str, str] = field(default_factory=dict)
+    id_prefix_overrides: dict[str, str] = field(default_factory=dict)
 
     # Editor
     editor: Optional[str] = None  # None = use $EDITOR
@@ -214,12 +212,36 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
 
     # Top-level settings
     if "id_prefix" in data:
-        config.id_prefix = data["id_prefix"]
-        config._id_prefix_was_set = True
-    if "prefix_by_path" in data:
-        raw = data["prefix_by_path"]
-        if isinstance(raw, dict):
-            config.prefix_by_path = {str(k): str(v) for k, v in raw.items()}
+        raw_id_prefix = data["id_prefix"]
+        if isinstance(raw_id_prefix, str):
+            config.id_prefix = raw_id_prefix
+            config.id_prefix_overrides = {}
+            config._id_prefix_was_set = True
+        elif isinstance(raw_id_prefix, dict):
+            if "default" not in raw_id_prefix:
+                raise ValueError(f"id_prefix.default is required in {path}")
+            default_prefix = raw_id_prefix["default"]
+            if not isinstance(default_prefix, str):
+                raise ValueError(f"id_prefix.default must be a string in {path}")
+
+            overrides = raw_id_prefix.get("overrides", [])
+            if not isinstance(overrides, list):
+                raise ValueError(f"id_prefix.overrides must be a list in {path}")
+
+            parsed_overrides: dict[str, str] = {}
+            for entry in overrides:
+                if not isinstance(entry, dict):
+                    raise ValueError(
+                        f"id_prefix.overrides entries must be mappings in {path}"
+                    )
+                for path_key, prefix in entry.items():
+                    parsed_overrides[str(path_key)] = str(prefix)
+
+            config.id_prefix = default_prefix
+            config.id_prefix_overrides = parsed_overrides
+            config._id_prefix_was_set = True
+        else:
+            raise ValueError(f"id_prefix must be a string or mapping in {path}")
     if "editor" in data:
         config.editor = data["editor"]
     if "list_format" in data:
@@ -249,21 +271,19 @@ def _apply_env_vars(config: BodegaConfig) -> None:
     # EDITOR is handled via effective_editor property
 
 
-def _apply_subdir_prefix_override(
-    config: BodegaConfig, bodega_dir: Optional[Path]
-) -> None:
+def _apply_subdir_prefix_override(config: BodegaConfig, bodega_dir: Optional[Path]) -> None:
     """
-    Apply a subdirectory-based prefix override from prefix_by_path config.
+    Apply a subdirectory-based prefix override from id_prefix.overrides.
 
     Computes the current working directory relative to the repository root
     (``bodega_dir.parent``) and selects the longest-matching key from
-    ``config.prefix_by_path``.  When a match is found it overrides
+    ``config.id_prefix_overrides``.  When a match is found it overrides
     ``config.id_prefix`` regardless of whether it was set explicitly or
     derived from the folder name.  This only affects new-ticket ID
     generation; reading or editing existing tickets is prefix-agnostic.
 
     No override is applied when:
-    - ``config.prefix_by_path`` is empty
+    - ``config.id_prefix_overrides`` is empty
     - ``bodega_dir`` is None (no repo found)
     - The current working directory is outside the repository root (e.g.
       offline mode stores under ``~/.bodega/``)
@@ -272,7 +292,7 @@ def _apply_subdir_prefix_override(
         config: BodegaConfig instance to potentially modify
         bodega_dir: Path to the ``.bodega`` directory, or None
     """
-    if not config.prefix_by_path or not bodega_dir:
+    if not config.id_prefix_overrides or not bodega_dir:
         return
 
     repo_root = bodega_dir.parent.resolve()
@@ -289,7 +309,7 @@ def _apply_subdir_prefix_override(
     best_prefix: Optional[str] = None
     best_len = -1
 
-    for path_key, prefix in config.prefix_by_path.items():
+    for path_key, prefix in config.id_prefix_overrides.items():
         key = path_key.strip("/")
         # A key matches when cwd is exactly at that path or inside it
         if rel_str == key or rel_str.startswith(key + "/"):
