@@ -215,7 +215,6 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
         raw_id_prefix = data["id_prefix"]
         if isinstance(raw_id_prefix, str):
             config.id_prefix = raw_id_prefix
-            config.id_prefix_overrides = {}
             config._id_prefix_was_set = True
         elif isinstance(raw_id_prefix, dict):
             if "default" not in raw_id_prefix:
