@@ -893,3 +893,20 @@ def test_id_prefix_object_overrides_must_be_list(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="id_prefix.overrides must be a list"):
         load_config(project_dir)
+
+
+def test_id_prefix_object_override_entries_must_be_mappings(tmp_path, monkeypatch):
+    """Test object-mode id_prefix requires override entries to be mappings."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "id_prefix:\n"
+        "  default: core\n"
+        "  overrides:\n"
+        "    - services\n"
+    )
+
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    with pytest.raises(ValueError, match="id_prefix.overrides entries must be mappings"):
+        load_config(project_dir)

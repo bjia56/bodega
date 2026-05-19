@@ -234,8 +234,13 @@ def _merge_yaml_config(config: BodegaConfig, path: Path) -> None:
                     raise ValueError(
                         f"id_prefix.overrides entries must be mappings in {path}"
                     )
+                if len(entry) != 1:
+                    raise ValueError(
+                        f"id_prefix.overrides entries must have exactly one mapping in {path}"
+                    )
                 for path_key, prefix in entry.items():
-                    parsed_overrides[str(path_key)] = str(prefix)
+                    normalized_key = str(path_key).strip("/")
+                    parsed_overrides[normalized_key] = str(prefix)
 
             config.id_prefix = default_prefix
             config.id_prefix_overrides = parsed_overrides
