@@ -58,7 +58,7 @@ jobs:
           cd src
           echo "BODEGA_VERSION=$(python -c 'import bodega; print(bodega.__version__)')" >> $GITHUB_ENV
 
-      - uses: Nuitka/Nuitka-Action@88d0c6c3d6f5022e79ef3fcc1e792871b4de8340
+      - uses: bjia56/Nuitka-Action@d6d534443a9b1a78069ed02f4cc1904d6ea42800
         with:
           nuitka-version: "4.0.1"
           script-name: ./src/bodega
