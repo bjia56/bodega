@@ -626,3 +626,55 @@ def test_offline_mode_delete_no_git_commit(tmp_path, sample_ticket):
     # Verify ticket was deleted
     with pytest.raises(TicketNotFoundError):
         storage.get(ticket_id)
+
+
+# ============================================================================
+# Mixed-Prefix Ticket Readability Tests
+# ============================================================================
+
+def test_read_ticket_with_different_prefix_config(temp_repo):
+    """Test that tickets with any prefix can be read regardless of configured prefix."""
+    tmp_path, bodega_dir = temp_repo
+
+    # Create a ticket using one prefix
+    config_a = BodegaConfig(bodega_dir=bodega_dir, id_prefix="proj")
+    storage_a = TicketStorage(config_a)
+    ticket = Ticket(id="", title="Proj ticket", type=TicketType.TASK, status=TicketStatus.OPEN)
+    created = storage_a.create(ticket)
+    assert created.id.startswith("proj-")
+
+    # Read and operate on it using a storage configured with a different prefix
+    config_b = BodegaConfig(bodega_dir=bodega_dir, id_prefix="other")
+    storage_b = TicketStorage(config_b)
+
+    loaded = storage_b.get(created.id)
+    assert loaded.id == created.id
+    assert loaded.title == "Proj ticket"
+
+
+def test_list_and_operate_on_mixed_prefix_tickets(temp_repo):
+    """Test that all tickets are listed and operable regardless of their prefix."""
+    tmp_path, bodega_dir = temp_repo
+
+    # Create tickets with different prefixes by directly saving them
+    prefixes = ["aa", "bb", "cc"]
+    created_ids = []
+    for pfx in prefixes:
+        cfg = BodegaConfig(bodega_dir=bodega_dir, id_prefix=pfx)
+        st = TicketStorage(cfg)
+        t = Ticket(id="", title=f"Ticket for {pfx}", type=TicketType.TASK, status=TicketStatus.OPEN)
+        created_ids.append(st.create(t).id)
+
+    # Using any config prefix, all tickets should be listable
+    config = BodegaConfig(bodega_dir=bodega_dir, id_prefix="zz")
+    storage = TicketStorage(config)
+
+    all_ids = storage.list_ids()
+    for ticket_id in created_ids:
+        assert ticket_id in all_ids
+
+    # And each ticket should be retrievable by its full ID
+    for ticket_id in created_ids:
+        loaded = storage.get(ticket_id)
+        assert loaded.id == ticket_id
+
