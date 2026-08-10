@@ -10,7 +10,7 @@ from bodega.storage import TicketStorage
 from bodega.config import BodegaConfig
 from bodega.models.ticket import Ticket, TicketType, TicketStatus
 from bodega.graph import DependencyGraph
-from bodega.utils import get_git_user, now_utc
+from bodega.utils import generate_id, get_git_user, now_utc
 
 
 # ============================================================================
@@ -90,6 +90,7 @@ def create_ticket(
     deps: Optional[list[str]] = None,
     parent: Optional[str] = None,
     external_ref: Optional[str] = None,
+    id_prefix: Optional[str] = None,
 ) -> tuple[Ticket, list[str]]:
     """Create a new ticket.
 
@@ -105,6 +106,10 @@ def create_ticket(
         deps: List of blocking ticket IDs
         parent: Parent ticket ID
         external_ref: External reference
+        id_prefix: Explicit id_prefix to use for the generated ID, bypassing
+            config.id_prefix (which is resolved from cwd and therefore
+            unreliable for callers like MCP tools). None defers to
+            storage's default behavior.
 
     Returns:
         Tuple of (created ticket, list of missing dependency IDs)
@@ -141,6 +146,8 @@ def create_ticket(
         external_ref=external_ref,
         description=description,
     )
+    if id_prefix:
+        ticket.id = generate_id(id_prefix)
 
     # Check for missing dependencies (warning, not error)
     missing_deps = []

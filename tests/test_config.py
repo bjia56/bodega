@@ -4,6 +4,7 @@ import yaml
 from bodega.config import (
     BodegaConfig,
     load_config,
+    resolve_component_prefix,
     write_default_config,
     validate_config,
     DEFAULT_CONFIG_TEMPLATE,
@@ -921,3 +922,86 @@ def test_id_prefix_object_overrides_must_not_be_scalar(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="id_prefix.overrides must be a mapping"):
         load_config(project_dir)
+
+
+def test_id_prefix_scalar_clears_stale_overrides_from_earlier_layer(tmp_path, monkeypatch):
+    """Test a later scalar id_prefix layer clears overrides set by an earlier layer."""
+    global_config = tmp_path / "global_config.yaml"
+    global_config.write_text(
+        "id_prefix:\n"
+        "  default: core\n"
+        "  overrides:\n"
+        "    services: svc\n"
+    )
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", global_config)
+
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text("id_prefix: plain\n")
+
+    subdir = tmp_path / "myproject" / "services"
+    subdir.mkdir()
+    monkeypatch.chdir(subdir)
+
+    config = load_config(project_dir)
+
+    assert config.id_prefix == "plain"
+    assert config.id_prefix_overrides == {}
+
+
+# ============================================================================
+# resolve_component_prefix Tests
+# ============================================================================
+
+
+def test_resolve_component_prefix_no_component_uses_default(tmp_path, monkeypatch):
+    """Test resolve_component_prefix falls back to id_prefix_default when component is None."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "id_prefix:\n"
+        "  default: core\n"
+        "  overrides:\n"
+        "    services: svc\n"
+    )
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+
+    # cwd is irrelevant to resolve_component_prefix, unlike load_config's
+    # own cwd-based override.
+    subdir = tmp_path / "myproject" / "services"
+    subdir.mkdir()
+    monkeypatch.chdir(subdir)
+
+    config = load_config(project_dir)
+
+    assert resolve_component_prefix(config, None) == "core"
+    assert resolve_component_prefix(config, "") == "core"
+
+
+def test_resolve_component_prefix_matches_component(tmp_path, monkeypatch):
+    """Test resolve_component_prefix resolves an explicit component regardless of cwd."""
+    project_dir = tmp_path / "myproject" / ".bodega"
+    project_dir.mkdir(parents=True)
+    project_dir.joinpath("config.yaml").write_text(
+        "id_prefix:\n"
+        "  default: core\n"
+        "  overrides:\n"
+        "    services: svc\n"
+        "    services/api: api\n"
+    )
+    monkeypatch.setattr("bodega.config.GLOBAL_CONFIG_PATH", tmp_path / "nonexistent")
+    monkeypatch.chdir(tmp_path / "myproject")
+
+    config = load_config(project_dir)
+
+    assert resolve_component_prefix(config, "services") == "svc"
+    assert resolve_component_prefix(config, "services/api") == "api"
+    assert resolve_component_prefix(config, "services/backend") == "svc"
+    assert resolve_component_prefix(config, "frontend") == "core"
+
+
+def test_resolve_component_prefix_unknown_component_falls_back_to_default(tmp_path, monkeypatch):
+    """Test an unmatched component falls back to id_prefix_default, not an error."""
+    config = BodegaConfig(id_prefix_default="core", id_prefix_overrides={"services": "svc"})
+
+    assert resolve_component_prefix(config, "totally/unknown") == "core"

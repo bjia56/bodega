@@ -11,7 +11,7 @@ from typing import Annotated, Optional
 from zeromcp import McpServer, McpToolError
 
 from bodega.storage import TicketStorage
-from bodega.config import BodegaConfig
+from bodega.config import BodegaConfig, resolve_component_prefix
 from bodega.operations import (
     query_tickets,
     get_ready_tickets,
@@ -41,6 +41,17 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
         Configured McpServer instance
     """
     mcp = McpServer("bodega")
+
+    # id_prefix.overrides component keys, surfaced in bodega_create's tool
+    # description so agents pick a known value instead of guessing a path.
+    _component_keys = sorted(config.id_prefix_overrides.keys())
+    _component_desc = (
+        "Component/subdirectory scope for ID prefix override "
+        f"(known: {', '.join(_component_keys)}). Omit for default prefix."
+        if _component_keys
+        else "Component/subdirectory scope for ID prefix override "
+        "(no overrides configured; omit for default prefix)."
+    )
 
     # ========================================================================
     # High Priority Tools - Core Workflow
@@ -125,12 +136,18 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
             Optional[str],
             "External reference (URL, issue number, etc.)"
         ] = None,
+        component: Annotated[Optional[str], _component_desc] = None,
     ) -> str:
         """Create a new ticket with the specified properties and returns the ticket ID."""
         try:
             # Parse tags and deps
             tag_list = [t.strip() for t in tags.split(",")] if tags else None
             dep_list = [d.strip() for d in deps.split(",")] if deps else None
+
+            # Resolved explicitly from `component`, never from cwd: the MCP
+            # server's cwd is fixed at startup and unrelated to what the
+            # calling agent is working on.
+            resolved_prefix = resolve_component_prefix(config, component)
 
             ticket, missing_deps = create_ticket(
                 storage,
@@ -144,6 +161,7 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
                 deps=dep_list,
                 parent=parent,
                 external_ref=external_ref,
+                id_prefix=resolved_prefix,
             )
 
             # Include warning about missing dependencies in response

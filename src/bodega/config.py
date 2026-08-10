@@ -77,6 +77,11 @@ class BodegaConfig:
     # The longest matching path key wins when creating new tickets.
     id_prefix_overrides: dict[str, str] = field(default_factory=dict)
 
+    # id_prefix before any cwd-based subdirectory override is applied.
+    # Used by callers (e.g. MCP) that resolve a prefix for an explicit
+    # component/path instead of trusting the process's cwd.
+    id_prefix_default: str = "bg"
+
     # Editor
     editor: Optional[str] = None  # None = use $EDITOR
 
@@ -184,6 +189,9 @@ def load_config(project_dir: Optional[Path] = None) -> BodegaConfig:
     if not config._id_prefix_was_set:
         config.id_prefix = _derive_id_prefix(bodega_dir)
 
+    # Snapshot the resolved default before any cwd-based override mutates it
+    config.id_prefix_default = config.id_prefix
+
     # Apply subdirectory prefix override (overrides explicit and derived prefix)
     _apply_subdir_prefix_override(config, bodega_dir)
 
@@ -267,6 +275,30 @@ def _apply_env_vars(config: BodegaConfig) -> None:
     # EDITOR is handled via effective_editor property
 
 
+def _match_override(overrides: dict[str, str], rel_str: str) -> Optional[str]:
+    """
+    Find the longest-matching path key in an overrides mapping.
+
+    Args:
+        overrides: Mapping of relative path -> prefix
+        rel_str: Relative path to match (posix-style, no leading/trailing slash)
+
+    Returns:
+        The prefix for the longest matching key, or None if no key matches
+    """
+    best_prefix: Optional[str] = None
+    best_len = -1
+
+    for key, prefix in overrides.items():
+        # A key matches when rel_str is exactly at that path or inside it
+        if rel_str == key or rel_str.startswith(key + "/"):
+            if len(key) > best_len:
+                best_prefix = prefix
+                best_len = len(key)
+
+    return best_prefix
+
+
 def _apply_subdir_prefix_override(config: BodegaConfig, bodega_dir: Optional[Path]) -> None:
     """
     Apply a subdirectory-based prefix override from id_prefix.overrides.
@@ -277,6 +309,13 @@ def _apply_subdir_prefix_override(config: BodegaConfig, bodega_dir: Optional[Pat
     ``config.id_prefix`` regardless of whether it was set explicitly or
     derived from the folder name.  This only affects new-ticket ID
     generation; reading or editing existing tickets is prefix-agnostic.
+
+    This is cwd-based and therefore only reliable for callers that are
+    actually invoked from the relevant directory (e.g. the CLI). Callers
+    that resolve a prefix on behalf of another actor (e.g. an MCP tool
+    call, where the server process's cwd has no relation to what the
+    caller is working on) should use ``resolve_component_prefix`` with an
+    explicit component instead.
 
     No override is applied when:
     - ``config.id_prefix_overrides`` is empty
@@ -301,19 +340,36 @@ def _apply_subdir_prefix_override(config: BodegaConfig, bodega_dir: Optional[Pat
         # cwd is outside the repo root – offline mode or similar
         return
 
-    # Find the longest matching path key
-    best_prefix: Optional[str] = None
-    best_len = -1
+    match = _match_override(config.id_prefix_overrides, rel_str)
+    if match is not None:
+        config.id_prefix = match
 
-    for key, prefix in config.id_prefix_overrides.items():
-        # A key matches when cwd is exactly at that path or inside it
-        if rel_str == key or rel_str.startswith(key + "/"):
-            if len(key) > best_len:
-                best_prefix = prefix
-                best_len = len(key)
 
-    if best_prefix is not None:
-        config.id_prefix = best_prefix
+def resolve_component_prefix(config: BodegaConfig, component: Optional[str] = None) -> str:
+    """
+    Resolve an id_prefix for an explicit component/path, independent of cwd.
+
+    Unlike the cwd-based override applied during ``load_config``, this is
+    meant for callers that know what they're working on but aren't
+    actually running from that directory (e.g. an MCP tool call, where the
+    server process's cwd is fixed at startup and unrelated to the ticket
+    being created).
+
+    Args:
+        config: BodegaConfig instance
+        component: Repo-relative path/component name to match against
+            ``config.id_prefix_overrides`` (e.g. "services/api"). None or
+            an unmatched value falls back to ``config.id_prefix_default``.
+
+    Returns:
+        The resolved id_prefix string
+    """
+    if component:
+        match = _match_override(config.id_prefix_overrides, component.strip("/"))
+        if match is not None:
+            return match
+
+    return config.id_prefix_default
 
 
 # ============================================================================
