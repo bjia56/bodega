@@ -21,7 +21,7 @@ from bodega.operations import (
     add_note,
     add_dependency,
 )
-from bodega.output import ticket_to_dict, format_ticket_detail
+from bodega.output import ticket_to_dict, ticket_to_summary_dict, format_ticket_detail
 from bodega.errors import TicketNotFoundError, AmbiguousIDError
 from bodega.models.ticket import TicketStatus
 
@@ -79,7 +79,16 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
             "Filter by priority (0=critical, 1=high, 2=normal, 3=low, 4=backlog)"
         ] = None,
     ) -> str:
-        """Query tickets as JSON for programmatic access."""
+        """Query tickets as JSON for programmatic access.
+
+        Querying a single ticket (via ticket_id) returns full ticket detail,
+        including description, design, acceptance criteria, and notes.
+        Listing multiple tickets (filters, no ticket_id) returns a compact
+        summary per ticket (id, title, type, status, priority, assignee,
+        tags, deps, parent) to avoid flooding the response with long
+        free-text fields; use bodega_query with a specific ticket_id, or
+        bodega_show, to fetch full detail for a ticket found in a list.
+        """
         try:
             status_filter = TicketStatus(status) if status else None
             result = query_tickets(
@@ -93,11 +102,11 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
                 include_closed=include_all,
             )
 
-            # Single ticket or list
+            # Single ticket: full detail. List: compact summaries.
             if ticket_id:
                 data = ticket_to_dict(result)
             else:
-                data = [ticket_to_dict(t) for t in result]
+                data = [ticket_to_summary_dict(t) for t in result]
 
             return json.dumps(data, indent=2, default=str)
 
@@ -265,10 +274,15 @@ def create_mcp_server(storage: TicketStorage, config: BodegaConfig) -> McpServer
 
     @mcp.tool
     def bodega_ready() -> str:
-        """List open tickets with no unresolved dependencies, sorted by priority."""
+        """List open tickets with no unresolved dependencies, sorted by priority.
+
+        Returns a compact summary per ticket (id, title, type, status,
+        priority, assignee, tags, deps, parent); use bodega_query with a
+        specific ticket_id, or bodega_show, to fetch full ticket detail.
+        """
         try:
             tickets = get_ready_tickets(storage)
-            data = [ticket_to_dict(t) for t in tickets]
+            data = [ticket_to_summary_dict(t) for t in tickets]
             return json.dumps(data, indent=2, default=str)
 
         except Exception as e:
