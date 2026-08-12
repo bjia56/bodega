@@ -271,6 +271,34 @@ def ticket_to_dict(ticket: Ticket) -> dict:
     }
 
 
+def ticket_to_summary_dict(ticket: Ticket) -> dict:
+    """
+    Convert ticket to a compact JSON-serializable dict for bulk listings.
+
+    Omits long free-text fields (description, design, acceptance_criteria,
+    notes) and rarely-needed metadata (links, external_ref, timestamps) that
+    would otherwise be repeated for every ticket in a multi-ticket result.
+    Callers that need those fields should look up the ticket individually.
+
+    Args:
+        ticket: The ticket to convert
+
+    Returns:
+        Compact dictionary representation of the ticket
+    """
+    return {
+        "id": ticket.id,
+        "title": ticket.title,
+        "type": ticket.type.value,
+        "status": ticket.status.value,
+        "priority": ticket.priority,
+        "assignee": ticket.assignee,
+        "tags": ticket.tags,
+        "deps": ticket.deps,
+        "parent": ticket.parent,
+    }
+
+
 # ============================================================================
 # Single Ticket Detail Format
 # ============================================================================

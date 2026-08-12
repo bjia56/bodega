@@ -16,6 +16,7 @@ from bodega.output import (
     format_ticket_detail,
     format_tickets,
     ticket_to_dict,
+    ticket_to_summary_dict,
 )
 from bodega.models.ticket import Ticket, TicketStatus, TicketType
 from bodega.config import BodegaConfig
@@ -329,6 +330,44 @@ def test_ticket_to_dict_complete():
     assert result["external_ref"] == "JIRA-123"
     assert result["created"] == now.isoformat()
     assert result["updated"] == now.isoformat()
+
+
+def test_ticket_to_summary_dict_omits_long_fields():
+    """Test ticket_to_summary_dict excludes free-text and metadata fields."""
+    now = now_utc()
+    ticket = Ticket(
+        id="bg-test",
+        title="Test ticket",
+        description="Test description",
+        design="Test design",
+        acceptance_criteria="Must work",
+        notes=["Note 1", "Note 2"],
+        type=TicketType.FEATURE,
+        status=TicketStatus.IN_PROGRESS,
+        priority=1,
+        assignee="alice",
+        tags=["tag1", "tag2"],
+        deps=["bg-dep1"],
+        links=["https://example.com"],
+        parent="bg-parent",
+        external_ref="JIRA-123",
+        created=now,
+        updated=now,
+    )
+
+    result = ticket_to_summary_dict(ticket)
+
+    assert result == {
+        "id": "bg-test",
+        "title": "Test ticket",
+        "type": "feature",
+        "status": "in-progress",
+        "priority": 1,
+        "assignee": "alice",
+        "tags": ["tag1", "tag2"],
+        "deps": ["bg-dep1"],
+        "parent": "bg-parent",
+    }
 
 
 # ============================================================================
